@@ -51,7 +51,7 @@ class Robot(CRobLinkAngs):
             self.printLineSensors()
         
             print("\n----------------------------------------\n")
-            time.sleep(0.1)
+
 
     def wander(self):
         center_id = 0
@@ -63,16 +63,16 @@ class Robot(CRobLinkAngs):
            or self.measures.irSensor[right_id]  > 5.0\
            or self.measures.irSensor[back_id]   > 5.0:
             print('Rotate left')
-            self.driveMotors(-0.05,+0.05)
+            self.driveMotors(-0.1,+0.1)
         elif self.measures.irSensor[left_id]> 2.7:
             print('Rotate slowly right')
-            self.driveMotors(0.05,0.0)
+            self.driveMotors(0.1,0.0)
         elif self.measures.irSensor[right_id]> 2.7:
             print('Rotate slowly left')
-            self.driveMotors(0.0,0.05)
+            self.driveMotors(0.0,0.1)
         else:
             print('Go')
-            self.driveMotors(0.05,0.05)
+            self.driveMotors(0.1,0.1)
 
     def printObstacleSensors(self):
         """Prints the values from the obstacle sensors."""
