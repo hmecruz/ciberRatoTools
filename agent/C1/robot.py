@@ -1,78 +1,52 @@
 from croblink import *
+from pid_controller import PIDController
 import time
+
+TIME_STEP = 0.001
+MAX_VEL = 1000.1 #lPow rPow max velocity value
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
+        self.pid_controller = PIDController(kp=0.2, ki=0.0, kd=0.0, time_step=TIME_STEP, max_output=MAX_VEL)
+        self.setpoint = 0 
 
     def run(self):
         if self.status != 0:
             print("Connection refused or error")
             quit()
 
-        state = 'stop'
-        stopped_state = 'run'
         while True:
             self.readSensors()
 
-            if self.measures.endLed:
-                print(self.robName + " exiting")
-                quit()
+            # Get the IR sensor values (left and right)
+            left_sensor = self.measures.irSensor[1]  # Left sensor
+            right_sensor = self.measures.irSensor[2]  # Right sensor
 
-            if state == 'stop' and self.measures.start:
-                state = stopped_state
+            # Calculate the error as the difference between the left and right sensors
+            error = left_sensor - right_sensor  # Positive error means closer to the right, negative closer to the left
 
-            if state != 'stop' and self.measures.stop:
-                stopped_state = state
-                state = 'stop'
+            # Use the PID controller to compute the control signal
+            control_signal = self.pid_controller.compute(error, self.setpoint)
 
-            if state == 'run':
-                if self.measures.visitingLed==True:
-                    state='wait'
-                if self.measures.ground==0:
-                    self.setVisitingLed(True);
-                self.wander()
-            elif state=='wait':
-                self.setReturningLed(True)
-                if self.measures.visitingLed==True:
-                    self.setVisitingLed(False)
-                if self.measures.returningLed==True:
-                    state='return'
-                self.driveMotors(0.0,0.0)
-            elif state=='return':
-                if self.measures.visitingLed==True:
-                    self.setVisitingLed(False)
-                if self.measures.returningLed==True:
-                    self.setReturningLed(False)
-                self.wander()
-        
+            # Adjust the motors based on the control signal
+            self.adjust_motors(control_signal)
 
             self.printObstacleSensors()
-            self.printLineSensors()
-        
             print("\n----------------------------------------\n")
 
+            time.sleep(TIME_STEP)
 
-    def wander(self):
-        center_id = 0
-        left_id = 1
-        right_id = 2
-        back_id = 3
-        if    self.measures.irSensor[center_id] > 5.0\
-           or self.measures.irSensor[left_id]   > 5.0\
-           or self.measures.irSensor[right_id]  > 5.0\
-           or self.measures.irSensor[back_id]   > 5.0:
-            print('Rotate left')
-            self.driveMotors(-0.1,+0.1)
-        elif self.measures.irSensor[left_id]> 2.7:
-            print('Rotate slowly right')
-            self.driveMotors(0.1,0.0)
-        elif self.measures.irSensor[right_id]> 2.7:
-            print('Rotate slowly left')
-            self.driveMotors(0.0,0.1)
-        else:
-            print('Go')
-            self.driveMotors(0.1,0.1)
+
+    def adjust_motors(self, control_signal):
+        # Control the motors based on PID output
+        base_speed = 0.1  # Maximum forward speed for both motors
+        left_motor_power = round(max(0.0, min(base_speed, base_speed - control_signal)), 2)  # Reduce power to left motor for right turn
+        right_motor_power = round(max(0.0, min(base_speed, base_speed + control_signal)), 2)  # Reduce power to right motor for left turn
+        
+        print(control_signal)
+        print(left_motor_power, right_motor_power)
+        self.driveMotors(left_motor_power, right_motor_power)
 
     def printObstacleSensors(self):
         """Prints the values from the obstacle sensors."""
@@ -84,17 +58,3 @@ class Robot(CRobLinkAngs):
         print(f"Left IR Sensor: {self.measures.irSensor[left_id]}")  
         print(f"Right IR Sensor: {self.measures.irSensor[right_id]}")  
         print(f"Back IR Sensor: {self.measures.irSensor[back_id]}\n")  
-
-    def printLineSensors(self):
-        """Prints the values from the line sensors."""
-        for i, lineSensor in enumerate(self.measures.lineSensor):
-            print(f"Line Sensor {i}: {lineSensor}")
-
-    def printGroundSensor(self):
-        """Prints the value from the ground sensor."""
-        print(f"Ground Sensor Value: {self.measures.ground}")
-
-    def printCollisionSensor(self):
-        """Prints the value from the collision sensor."""
-        print(f"Collision Sensor Ready: {self.measures.collisionReady}")
-
