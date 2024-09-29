@@ -13,11 +13,11 @@ class PIDController:
     def compute(self, current_value, setpoint):
         """Compute the control signal."""
         self.error = setpoint - current_value 
-        self.integral_error += self.error * self.time_step # Sum of all the errors
+        self.integral_error += self.error  * self.time_step # Sum of all the errors
         self.derivative_error = (self.error - self.previous_error) / self.time_step
         self.previous_error = self.error
         output = self.kp*self.error + self.ki*self.integral_error + self.kd*self.derivative_error
-        if self.max_output != None:
-            output = min(self.max_output, output)
+        if self.max_output is not None:
+            output = max(-self.max_output, min(self.max_output, output))
 
-        return output
+        return round(output, 2) # Round to two decimal cases
