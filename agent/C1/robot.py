@@ -2,18 +2,18 @@ from croblink import *
 from pid_controller import PIDController
 import time
 
-TIME_STEP = 0.001 # Sampling time --> TODO
-MAX_POW = 1000.15 #lPow rPow max velocity value 
+TIME_STEP = 0.005 # Sampling time --> TODO 0.001
+MAX_POW = 0.15 #lPow rPow max velocity value 
 MIN_POW = -0.15 #lPow rPow min velocity value 
 
 # Speed PID Controller values
-KP = 0.008 # TODO 0.01
+KP = 0.02 # TODO 0.01
 KI = 0 # TODO
 KD = 0 # TODO
 
 # Steering PID Controller Values
-KPs = 0.09 # 0.2 
-KIs = 0 # TODO
+KPs = 0.25 # 0.2 
+KIs = 0.0 # TODO 0.1
 KDs = 0 # TODO
 
 class Robot(CRobLinkAngs):
@@ -54,7 +54,7 @@ class Robot(CRobLinkAngs):
 
     def adjust_motors(self, speed_control_signal, steering_control_signal):
         # Control the motors based on PID output
-        base_speed = min(0.15, 0.15 + speed_control_signal)
+        base_speed = min(0.15, max(MIN_POW, 0.15 + speed_control_signal))
         
         left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_control_signal))  # Reduce power to left motor for right turn
         right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_control_signal))  # Reduce power to right motor for left turn
@@ -74,3 +74,6 @@ class Robot(CRobLinkAngs):
         print(f"Left IR Sensor: {self.measures.irSensor[left_id]}")  
         print(f"Right IR Sensor: {self.measures.irSensor[right_id]}")  
         print(f"Back IR Sensor: {self.measures.irSensor[back_id]}\n")  
+
+    def printLineSensors(self):
+        print("".join(str(m) for m in self.measures.lineSensor))
