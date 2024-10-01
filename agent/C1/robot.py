@@ -7,14 +7,14 @@ MAX_POW = 0.15 #lPow rPow max velocity value
 MIN_POW = -0.15 #lPow rPow min velocity value 
 
 # Speed PID Controller values
-KP = 0.02 # TODO 0.01
+KP = 0.02 # TODO 0.02
 KI = 0 # TODO
-KD = 0 # TODO
+KD = 0.0 # TODO
 
 # Steering PID Controller Values
-KPs = 0.25 # 0.2 
+KPs = 0.1 # 0.2 --> 0.25
 KIs = 0.0 # TODO 0.1
-KDs = 0 # TODO
+KDs = 0.0 # TODO
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
@@ -23,7 +23,7 @@ class Robot(CRobLinkAngs):
         self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, max_output=MAX_POW)
         self.speed_setpoint = 0.7 # Slow down as the center sensor increases. 
         self.steering_setpoint = 0
-
+        self.error_threshold = 0.5
 
     def run(self):
         if self.status != 0:
@@ -39,7 +39,10 @@ class Robot(CRobLinkAngs):
             right_sensor = self.measures.irSensor[2]  # Right sensor
 
             # Calculate the error as the difference between the left and right sensors
-            error = left_sensor - right_sensor  # Positive error means closer to the right, negative closer to the left
+            if abs(left_sensor - right_sensor) < self.error_threshold and center_sensor < 1: # Minimal steering difference and no wall in front  
+                error = 0
+            else:
+                error = left_sensor - right_sensor # Positive error means closer to the right, negative closer to the left
 
             # Compute control signal if error is significant
             speed_control_signal = self.speed_pid_controller.compute(center_sensor, self.speed_setpoint)
