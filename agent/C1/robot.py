@@ -10,7 +10,7 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 TIME_STEP = 0.005 # Sampling time 
 
 # Throttle PID Controller values
-KP = 0.002
+KP = 0.002 # 0.002
 KI = 0 
 KD = 0
 
@@ -24,8 +24,8 @@ class Robot(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
 
         # PIDController 
-        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Throttle
-        self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Steering
+        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
+        self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
         
         self.speed_setpoint = 0.8
         self.steering_setpoint = 0
@@ -96,7 +96,13 @@ class Robot(CRobLinkAngs):
 
     def is_intersection(self, center_sensor, left_sensor, right_sensor):
         """Detects an intersection based on sensor values."""
-
-        # Adjust if needed
-        # 1.0 is too low for low speeds
         return center_sensor <= 0.8 and left_sensor <= 1.1 and right_sensor <= 1.1
+    
+    def is_dead_end(self):
+        # Do not detect dead end
+        # If the center sensor is too high, center_sensor >= 2.0
+        # Rotate until is less than 1.0
+        # Move
+        # This counters dead ends 
+        # and possibly other situations
+        pass
