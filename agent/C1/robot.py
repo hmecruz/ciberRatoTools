@@ -30,12 +30,12 @@ class Robot(CRobLinkAngs):
         self.speed_setpoint = 0.8
         self.steering_setpoint = 0
 
-        self.error_threshold = 0.1 # Ignore errors --> Errors can be cause by noise and or noise filter
+        self.error_threshold = 0.2 # Ignore errors --> Errors can be cause by noise and or noise filter
         
         # Noise Filter
-        self.filter_left = NoiseFilter(window_size=3, noise_threshold=0.05)
-        self.filter_right = NoiseFilter(window_size=3, noise_threshold=0.05)
-        self.filter_center = NoiseFilter(window_size=3, noise_threshold=0.05)
+        self.filter_left = NoiseFilter(window_size=2, noise_threshold=0.05)
+        self.filter_right = NoiseFilter(window_size=2, noise_threshold=0.05)
+        self.filter_center = NoiseFilter(window_size=1, noise_threshold=0.05) # Raw Value
 
     def run(self):
         if self.status != 0:
@@ -50,13 +50,13 @@ class Robot(CRobLinkAngs):
             left_sensor = self.filter_left.update(self.measures.irSensor[1])
             right_sensor = self.filter_right.update(self.measures.irSensor[2])
 
-
-            if self.is_intersection(center_sensor, left_sensor, right_sensor):
-                print("Intersection")
-                self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
+            # Detect intersection
+            #if self.is_intersection(center_sensor, left_sensor, right_sensor):
+                #print("Intersection")
+                #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             # Calculate the error as the difference between the left and right sensors
-            if abs(left_sensor - right_sensor) < self.error_threshold and center_sensor <= self.speed_setpoint or self.is_intersection(center_sensor, left_sensor, right_sensor):
+            if abs(left_sensor - right_sensor) <= self.error_threshold and center_sensor <= self.speed_setpoint or self.is_intersection(center_sensor, left_sensor, right_sensor):
                 steering_error = 0
             else:
                 steering_error = left_sensor - right_sensor # Positive error means closer to the right, negative closer to the left
@@ -67,7 +67,7 @@ class Robot(CRobLinkAngs):
             self.adjust_motors(speed_control_signal, steering_control_signal)
            
     
-            #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
+            self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             print("\n----------------------------------------\n")
             time.sleep(TIME_STEP) # Sleep 
@@ -79,10 +79,10 @@ class Robot(CRobLinkAngs):
         
         left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_control_signal))  # Reduce power to left motor for right turn
         right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_control_signal))  # Reduce power to right motor for left turn
-
-        #print(f"Speed Control Signal: {speed_control_signal}")
-        #print(f"Steering Control Signal: {steering_control_signal}")
-        #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+        
+        print(f"Speed Control Signal: {speed_control_signal}")
+        print(f"Steering Control Signal: {steering_control_signal}")
+        print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         self.driveMotors(left_motor_power, right_motor_power)
 
     def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):

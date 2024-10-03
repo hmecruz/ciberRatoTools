@@ -1,7 +1,7 @@
 from collections import deque
 
 class NoiseFilter:
-    def __init__(self, window_size=5, noise_threshold=0.1):
+    def __init__(self, window_size, noise_threshold):
         self.window_size = window_size
         self.noise_threshold = noise_threshold
         self.values = deque(maxlen=window_size)  # Use deque with maxlen for automatic management
@@ -13,7 +13,8 @@ class NoiseFilter:
         # Compute the min and max bounds based on noise threshold
         min_filtered_value = current_value * (1 - self.noise_threshold)
         max_filtered_value = current_value * (1 + self.noise_threshold)
-
-        filtered_value = max(min_filtered_value, min(max_filtered_value, filtered_value))
-
+        
+        if not (min_filtered_value <= filtered_value <= max_filtered_value):
+            filtered_value = current_value
+        
         return round(filtered_value, 1)
