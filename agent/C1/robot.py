@@ -15,7 +15,7 @@ KI = 0
 KD = 0
 
 # Steering PID Controller Values
-KPs = 0.095
+KPs = 0.092
 KIs = 0
 KDs = 0.00085 # 0.0008
 
@@ -27,7 +27,7 @@ class Robot(CRobLinkAngs):
         self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Throttle
         self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Steering
         
-        self.speed_setpoint = 0.7 
+        self.speed_setpoint = 0.8
         self.steering_setpoint = 0
 
         self.error_threshold = 0.1 # Ignore errors --> Errors can be cause by noise and or noise filter
@@ -66,8 +66,7 @@ class Robot(CRobLinkAngs):
             steering_control_signal = self.steering_pid_controller.compute(steering_error, self.steering_setpoint)
             self.adjust_motors(speed_control_signal, steering_control_signal)
            
-            
-            
+    
             #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             print("\n----------------------------------------\n")
@@ -100,4 +99,4 @@ class Robot(CRobLinkAngs):
 
         # Adjust if needed
         # 1.0 is too low for low speeds
-        return center_sensor <= 1.2 and left_sensor <= 1.2 and right_sensor <= 1.2
+        return center_sensor <= 0.8 and left_sensor <= 1.1 and right_sensor <= 1.1
