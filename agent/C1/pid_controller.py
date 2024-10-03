@@ -18,6 +18,6 @@ class PIDController:
         self.previous_error = self.error
         output = self.kp*self.error + self.ki*self.integral_error + self.kd*self.derivative_error
         if self.max_output is not None:
-            output = max(-self.max_output, min(self.max_output, output))
+            output = max(-2 * self.max_output, min(self.max_output, output))
 
         return round(output, 2) # Round to two decimal cases

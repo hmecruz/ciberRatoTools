@@ -1,29 +1,41 @@
 from croblink import *
 from pid_controller import PIDController
 import time
+from noise_filter import NoiseFilter
 
-TIME_STEP = 0.005 # Sampling time --> TODO 0.001
+# MAX / MIN Velocity values 
 MAX_POW = 0.15 #lPow rPow max velocity value 
 MIN_POW = -0.15 #lPow rPow min velocity value 
 
-# Speed PID Controller values
-KP = 0.02 # TODO 0.02
-KI = 0 # TODO
-KD = 0.0 # TODO
+TIME_STEP = 0.005 # Sampling time 
+
+# Throttle PID Controller values
+KP = 0.002
+KI = 0 
+KD = 0
 
 # Steering PID Controller Values
-KPs = 0.1 # 0.2 --> 0.25
-KIs = 0.0 # TODO 0.1
-KDs = 0.0 # TODO
+KPs = 0.095
+KIs = 0
+KDs = 0.00085 # 0.0008
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
-        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, max_output=MAX_POW)
-        self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, max_output=MAX_POW)
-        self.speed_setpoint = 0.7 # Slow down as the center sensor increases. 
+
+        # PIDController 
+        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Throttle
+        self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, max_output=MAX_POW) # PIDController Steering
+        
+        self.speed_setpoint = 0.7 
         self.steering_setpoint = 0
-        self.error_threshold = 0.5
+
+        self.error_threshold = 0.1 # Ignore errors --> Errors can be cause by noise and or noise filter
+        
+        # Noise Filter
+        self.filter_left = NoiseFilter(window_size=3, noise_threshold=0.05)
+        self.filter_right = NoiseFilter(window_size=3, noise_threshold=0.05)
+        self.filter_center = NoiseFilter(window_size=3, noise_threshold=0.05)
 
     def run(self):
         if self.status != 0:
@@ -31,52 +43,61 @@ class Robot(CRobLinkAngs):
             quit()
 
         while True:
-            self.readSensors()
 
-            # Get the IR sensor values (left and right)
-            center_sensor = self.measures.irSensor[0] # Center sensor
-            left_sensor = self.measures.irSensor[1]  # Left sensor
-            right_sensor = self.measures.irSensor[2]  # Right sensor
+            # Read IR obstacle sensor values 
+            self.readSensors()
+            center_sensor = self.filter_center.update(self.measures.irSensor[0])
+            left_sensor = self.filter_left.update(self.measures.irSensor[1])
+            right_sensor = self.filter_right.update(self.measures.irSensor[2])
+
+
+            if self.is_intersection(center_sensor, left_sensor, right_sensor):
+                print("Intersection")
+                self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             # Calculate the error as the difference between the left and right sensors
-            if abs(left_sensor - right_sensor) < self.error_threshold and center_sensor < 1: # Minimal steering difference and no wall in front  
-                error = 0
+            if abs(left_sensor - right_sensor) < self.error_threshold and center_sensor <= self.speed_setpoint or self.is_intersection(center_sensor, left_sensor, right_sensor):
+                steering_error = 0
             else:
-                error = left_sensor - right_sensor # Positive error means closer to the right, negative closer to the left
-
+                steering_error = left_sensor - right_sensor # Positive error means closer to the right, negative closer to the left
+        
             # Compute control signal if error is significant
             speed_control_signal = self.speed_pid_controller.compute(center_sensor, self.speed_setpoint)
-            steering_control_signal = self.steering_pid_controller.compute(error, self.steering_setpoint)
+            steering_control_signal = self.steering_pid_controller.compute(steering_error, self.steering_setpoint)
             self.adjust_motors(speed_control_signal, steering_control_signal)
+           
+            
+            
+            #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
-            self.printObstacleSensors()
             print("\n----------------------------------------\n")
-    
-            time.sleep(TIME_STEP)
+            time.sleep(TIME_STEP) # Sleep 
 
 
     def adjust_motors(self, speed_control_signal, steering_control_signal):
         # Control the motors based on PID output
-        base_speed = min(0.15, max(MIN_POW, 0.15 + speed_control_signal))
+        base_speed = min(MAX_POW, max(MIN_POW, MAX_POW + speed_control_signal))
         
         left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_control_signal))  # Reduce power to left motor for right turn
         right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_control_signal))  # Reduce power to right motor for left turn
 
-        print(f"Speed Control Signal: {speed_control_signal}")
-        print(f"Steering Control Signal: {steering_control_signal}")
-        print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+        #print(f"Speed Control Signal: {speed_control_signal}")
+        #print(f"Steering Control Signal: {steering_control_signal}")
+        #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         self.driveMotors(left_motor_power, right_motor_power)
 
-    def printObstacleSensors(self):
+    def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):
         """Prints the values from the obstacle sensors."""
-        center_id = 0
-        left_id = 1
-        right_id = 2
-        back_id = 3
-        print(f"Center IR Sensor: {self.measures.irSensor[center_id]}") 
-        print(f"Left IR Sensor: {self.measures.irSensor[left_id]}")  
-        print(f"Right IR Sensor: {self.measures.irSensor[right_id]}")  
-        print(f"Back IR Sensor: {self.measures.irSensor[back_id]}\n")  
+        print(f"Filter Center IR Sensor: {center_sensor}") 
+        print(f"Filter Left IR Sensor: {left_sensor}")  
+        print(f"Filter Right IR Sensor: {right_sensor}")  
 
-    def printLineSensors(self):
+    def print_line_sensors(self):
         print("".join(str(m) for m in self.measures.lineSensor))
+
+    def is_intersection(self, center_sensor, left_sensor, right_sensor):
+        """Detects an intersection based on sensor values."""
+
+        # Adjust if needed
+        # 1.0 is too low for low speeds
+        return center_sensor <= 1.2 and left_sensor <= 1.2 and right_sensor <= 1.2
