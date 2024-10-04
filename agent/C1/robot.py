@@ -1,23 +1,22 @@
 from croblink import *
 from pid_controller import PIDController
-import time
 from noise_filter import NoiseFilter
 
 # MAX / MIN Velocity values 
 MAX_POW = 0.15 #lPow rPow max velocity value 
 MIN_POW = -0.15 #lPow rPow min velocity value 
 
-TIME_STEP = 0.005 # Sampling time 
+TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
 # Adjust values since we are not using time.sleep anymore 
 # Read sensor is a blocking action
 # Throttle PID Controller values
-KP = 0.0025 # 0.002
+KP = 0.002 # 0.002
 KI = 0 
 KD = 0
 
 # Steering PID Controller Values
-KPS = 0.1
+KPS = 0.095 
 KIS = 0
 KDS = 0.00075 # 0.0008
 
@@ -36,9 +35,9 @@ class Robot(CRobLinkAngs):
         self.error_threshold = 0.2 # Ignore errors --> Errors can be cause by noise and or noise filter
         
         # Noise Filter
-        self.filter_left = NoiseFilter(window_size=2, noise_threshold=0.05)
-        self.filter_right = NoiseFilter(window_size=2, noise_threshold=0.05)
-        self.filter_center = NoiseFilter(window_size=1, noise_threshold=0.05) # Raw Value
+        self.filter_left = NoiseFilter(window_size=3, noise_threshold=0.1)
+        self.filter_right = NoiseFilter(window_size=3, noise_threshold=0.1)
+        self.filter_center = NoiseFilter(window_size=3, noise_threshold=0.1) 
 
     def run(self):
         if self.status != 0:
@@ -49,18 +48,10 @@ class Robot(CRobLinkAngs):
 
             # Read IR obstacle sensor values 
             self.readSensors()
-            #center_sensor = self.filter_center.update(self.measures.irSensor[0])
-            #left_sensor = self.filter_left.update(self.measures.irSensor[1])
-            #right_sensor = self.filter_right.update(self.measures.irSensor[2])
-
+        
             center_sensor = self.measures.irSensor[0]
             left_sensor = self.measures.irSensor[1]
             right_sensor = self.measures.irSensor[2]
-
-            # Detect intersection
-            #if self.is_intersection(center_sensor, left_sensor, right_sensor):
-                #print("Intersection")
-                #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             # Calculate the error as the difference between the left and right sensors
             if abs(left_sensor - right_sensor) <= self.error_threshold and center_sensor <= self.speed_setpoint or self.is_intersection(center_sensor, left_sensor, right_sensor):
@@ -97,10 +88,10 @@ class Robot(CRobLinkAngs):
         print(f"Filter Left IR Sensor: {left_sensor}")  
         print(f"Filter Right IR Sensor: {right_sensor}")  
 
-    def print_line_sensors(self):
-        print("".join(str(m) for m in self.measures.lineSensor))
-
     def is_intersection(self, center_sensor, left_sensor, right_sensor):
         """Detects an intersection based on sensor values."""
-        # Use noise filter just for the intersection
-        return center_sensor <= 0.8 and left_sensor <= 1.1 and right_sensor <= 1.1
+        center_sensor = self.filter_center.update(center_sensor)
+        left_sensor = self.filter_left.update(left_sensor)
+        right_sensor = self.filter_right.update(right_sensor)
+        
+        return center_sensor <= 0.8 and left_sensor <= 1.0 and right_sensor <= 1.0

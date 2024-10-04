@@ -11,10 +11,11 @@ class NoiseFilter:
         filtered_value = sum(self.values) / len(self.values)
         
         # Compute the min and max bounds based on noise threshold
-        min_filtered_value = current_value * (1 - self.noise_threshold)
-        max_filtered_value = current_value * (1 + self.noise_threshold)
         
-        if not (min_filtered_value <= filtered_value <= max_filtered_value):
-            filtered_value = current_value
+        #min_filtered_value = current_value * (1 - self.noise_threshold)
+        #max_filtered_value = current_value * (1 + self.noise_threshold)
+        
+        #if not (min_filtered_value <= filtered_value <= max_filtered_value):
+        #    filtered_value = current_value
         
         return round(filtered_value, 1)
