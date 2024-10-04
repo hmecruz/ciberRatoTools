@@ -9,15 +9,18 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 
 TIME_STEP = 0.005 # Sampling time 
 
+# Adjust values since we are not using time.sleep anymore 
+# Read sensor is a blocking action
 # Throttle PID Controller values
-KP = 0.002 # 0.002
+KP = 0.0025 # 0.002
 KI = 0 
 KD = 0
 
 # Steering PID Controller Values
-KPs = 0.092
-KIs = 0
-KDs = 0.00085 # 0.0008
+KPS = 0.1
+KIS = 0
+KDS = 0.00075 # 0.0008
+
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
@@ -25,7 +28,7 @@ class Robot(CRobLinkAngs):
 
         # PIDController 
         self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
-        self.steering_pid_controller = PIDController(kp=KPs, ki=KIs, kd=KDs, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
+        self.steering_pid_controller = PIDController(kp=KPS, ki=KIS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
         
         self.speed_setpoint = 0.8
         self.steering_setpoint = 0
@@ -46,9 +49,13 @@ class Robot(CRobLinkAngs):
 
             # Read IR obstacle sensor values 
             self.readSensors()
-            center_sensor = self.filter_center.update(self.measures.irSensor[0])
-            left_sensor = self.filter_left.update(self.measures.irSensor[1])
-            right_sensor = self.filter_right.update(self.measures.irSensor[2])
+            #center_sensor = self.filter_center.update(self.measures.irSensor[0])
+            #left_sensor = self.filter_left.update(self.measures.irSensor[1])
+            #right_sensor = self.filter_right.update(self.measures.irSensor[2])
+
+            center_sensor = self.measures.irSensor[0]
+            left_sensor = self.measures.irSensor[1]
+            right_sensor = self.measures.irSensor[2]
 
             # Detect intersection
             #if self.is_intersection(center_sensor, left_sensor, right_sensor):
@@ -70,7 +77,6 @@ class Robot(CRobLinkAngs):
             self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             print("\n----------------------------------------\n")
-            time.sleep(TIME_STEP) # Sleep 
 
 
     def adjust_motors(self, speed_control_signal, steering_control_signal):
@@ -96,13 +102,5 @@ class Robot(CRobLinkAngs):
 
     def is_intersection(self, center_sensor, left_sensor, right_sensor):
         """Detects an intersection based on sensor values."""
+        # Use noise filter just for the intersection
         return center_sensor <= 0.8 and left_sensor <= 1.1 and right_sensor <= 1.1
-    
-    def is_dead_end(self):
-        # Do not detect dead end
-        # If the center sensor is too high, center_sensor >= 2.0
-        # Rotate until is less than 1.0
-        # Move
-        # This counters dead ends 
-        # and possibly other situations
-        pass
