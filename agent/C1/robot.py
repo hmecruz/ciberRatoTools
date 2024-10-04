@@ -84,14 +84,14 @@ class Robot(CRobLinkAngs):
 
     def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):
         """Prints the values from the obstacle sensors."""
-        print(f"Filter Center IR Sensor: {center_sensor}") 
-        print(f"Filter Left IR Sensor: {left_sensor}")  
-        print(f"Filter Right IR Sensor: {right_sensor}")  
+        print(f"Center IR Sensor: {center_sensor}") 
+        print(f"Left IR Sensor: {left_sensor}")  
+        print(f"Right IR Sensor: {right_sensor}")  
 
     def is_intersection(self, center_sensor, left_sensor, right_sensor):
         """Detects an intersection based on sensor values."""
         center_sensor = self.filter_center.update(center_sensor)
         left_sensor = self.filter_left.update(left_sensor)
         right_sensor = self.filter_right.update(right_sensor)
-        
+
         return center_sensor <= 0.8 and left_sensor <= 1.0 and right_sensor <= 1.0
