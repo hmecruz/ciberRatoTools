@@ -8,8 +8,6 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
-# Adjust values since we are not using time.sleep anymore 
-# Read sensor is a blocking action
 # Throttle PID Controller values
 KP = 0.002 # 0.002
 KI = 0 
@@ -32,12 +30,12 @@ class Robot(CRobLinkAngs):
         self.speed_setpoint = 0.8
         self.steering_setpoint = 0
 
-        self.error_threshold = 0.2 # Ignore errors --> Errors can be cause by noise and or noise filter
+        self.error_threshold = 0.2 # Ignore small errors --> Errors can be cause by noise
         
-        # Noise Filter
-        self.filter_left = NoiseFilter(window_size=3, noise_threshold=0.1)
-        self.filter_right = NoiseFilter(window_size=3, noise_threshold=0.1)
-        self.filter_center = NoiseFilter(window_size=3, noise_threshold=0.1) 
+        # Noise Filter used to detect intersections
+        self.filter_left = NoiseFilter(window_size=4, noise_threshold=0.1)
+        self.filter_right = NoiseFilter(window_size=4, noise_threshold=0.1)
+        self.filter_center = NoiseFilter(window_size=4, noise_threshold=0.1) 
 
     def run(self):
         if self.status != 0:
@@ -47,13 +45,17 @@ class Robot(CRobLinkAngs):
         while True:
 
             # Read IR obstacle sensor values 
-            self.readSensors()
-        
+            self.readSensors() # Read sensor is a blocking action every 50ms --> See Labs/rmi-2425/C1-config.xml
+    
             center_sensor = self.measures.irSensor[0]
             left_sensor = self.measures.irSensor[1]
             right_sensor = self.measures.irSensor[2]
 
+            self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
+
+
             # Calculate the error as the difference between the left and right sensors
+            if self.is_intersection(center_sensor, left_sensor, right_sensor): print("Intersection")
             if abs(left_sensor - right_sensor) <= self.error_threshold and center_sensor <= self.speed_setpoint or self.is_intersection(center_sensor, left_sensor, right_sensor):
                 steering_error = 0
             else:
@@ -64,9 +66,6 @@ class Robot(CRobLinkAngs):
             steering_control_signal = self.steering_pid_controller.compute(steering_error, self.steering_setpoint)
             self.adjust_motors(speed_control_signal, steering_control_signal)
            
-    
-            self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
-
             print("\n----------------------------------------\n")
 
 
@@ -94,4 +93,4 @@ class Robot(CRobLinkAngs):
         left_sensor = self.filter_left.update(left_sensor)
         right_sensor = self.filter_right.update(right_sensor)
 
-        return center_sensor <= 0.8 and left_sensor <= 1.0 and right_sensor <= 1.0
+        return center_sensor <= 1 and left_sensor <= 1.1 and right_sensor <= 1.1
