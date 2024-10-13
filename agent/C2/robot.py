@@ -1,5 +1,4 @@
 from croblink import *
-from low_pass_filter import LowPassFilter
 from pd_controller import PDController
 from dfs_pathfinding import DFSPathfinder
 
@@ -7,28 +6,15 @@ from dfs_pathfinding import DFSPathfinder
 STEERING = 0
 MOVE = 1
 
-# Position values to move for each direction
-# 2 coordinates is the equivalent of 1 square in the simulation map 
-MOVE_NORTH = (0, 2)
-MOVE_SOUTH = (0, -2)
-MOVE_WEST = (-2, 0)
-MOVE_EAST = (2, 0)
-
-# Compass Values for each direction 
-# -180 to 180 --> If the robot is facing the right (EAST) the compass is 0
+# Compass values --> -180 to 180
 NORTH = 90.0
 SOUTH = -90.0
 WEST = [-180.0, 180.0]
 EAST = 0.0
 
-# Simulation Map
-# Coordinates Map would be 14x28
-CELLROWS=7
-CELLCOLS=14
-
-# MAX / MIN Velocity values 
-MAX_POW = 0.15 #lPow rPow max velocity value 
-MIN_POW = -0.15 #lPow rPow min velocity value 
+# Max and Min Motor Power values 
+MAX_POW = 0.15 
+MIN_POW = -0.15 
 
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
@@ -111,7 +97,8 @@ class Robot(CRobLinkAngs):
                     continue
                  
             # Request DFS for the next move
-            next_move = self.dfs.get_next_move(self.current_position, self.current_direction, ir_sensors)
+            next_move = self.dfs.get_next_move(self.current_position, self.get_direction(), ir_sensors)
+            print(f"Next Move: {next_move}")
             if next_move: 
                 self.direction_setpoint, self.position_setpoint = next_move  
             else: 
@@ -136,6 +123,7 @@ class Robot(CRobLinkAngs):
         
         return True
     
+
     def move(self):
         if self.position_setpoint is None or \
             self.previous_position == self.current_position == self.position_setpoint or (
@@ -159,6 +147,7 @@ class Robot(CRobLinkAngs):
             self.move_to_position(self.current_position[1], self.position_setpoint[1], invert_power) # y coordinate
 
         return True # Movement is not completed
+
 
     def move_to_position(self, current_position, position_setpoint, invert_power): 
         motor_power = self.speed_pid_controller.compute(current_position, position_setpoint)
@@ -195,16 +184,9 @@ class Robot(CRobLinkAngs):
         """Check if the current value is within the specified threshold of the setpoint."""
         return abs(current_value - setpoint_value) <= threshold
     
-    
+
     def print_position_data(self):
         """Print the robot's position, compass, and direction with a custom message."""
         print(f"X-Coordinate: {self.measures.x}")
         print(f"Y-Coordinate: {self.measures.y}")
         print(f"Compass: {self.measures.compass}")
-
-    def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):
-        """Prints the values from the obstacle sensors."""
-        print(f"Center IR Sensor: {center_sensor}") 
-        print(f"Left IR Sensor: {left_sensor}")  
-        print(f"Right IR Sensor: {right_sensor}")  
-     
