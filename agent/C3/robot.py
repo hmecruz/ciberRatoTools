@@ -24,12 +24,12 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
 # Throttle PD Controller values
-KP = 0.3 # Perfect
+KP = 0.35 # Perfect
 KD = 0 # No need
 
 # Steering PD Controller Values
 KPS = 0.02 # Perfect 
-KDS = 0 # No need
+KDS = 0.00003 # 0.00005
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
@@ -60,13 +60,14 @@ class Robot(CRobLinkAngs):
         self.readSensors()
         self.initial_position = (self.measures.x, self.measures.y)
         self.current_position = self.initial_position
-        self.position_setpoint = tuple(map(sum, zip(self.initial_position, MOVE_WEST)))
+        self.position_setpoint = tuple(map(sum, zip(self.initial_position, MOVE_EAST)))
         
         self.current_direction = self.measures.compass
         self.direction_setpoint = DIR_NORTH
 
         while True:
             
+            """
             # Throttle Test
             self.readSensors()
             self.current_position = (self.measures.x, self.measures.y)
@@ -79,10 +80,10 @@ class Robot(CRobLinkAngs):
             print(f"lPow rPow: ({motor_power}, {motor_power})")
 
             print("\n----------------------------------------\n")
-
+            """
         
-
-            # Throttle Test
+            
+            # Steering Test
             self.readSensors()
             self.current_direction = self.measures.compass
             print(f"Current Direction: {self.current_direction}")
@@ -94,3 +95,4 @@ class Robot(CRobLinkAngs):
             print(f"lPow rPow: ({-motor_power}, {motor_power})")
 
             print("\n----------------------------------------\n")
+            

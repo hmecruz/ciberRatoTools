@@ -3,10 +3,10 @@ MOVE_SOUTH = (0, -2)
 MOVE_WEST = (-2, 0)
 MOVE_EAST = (2, 0)
 
-DIR_NORTH = 90
-DIR_SOUTH = -90
-DIR_WEST = [-180, 180]
-DIR_EAST = 0
+DIR_NORTH = 90.0
+DIR_SOUTH = -90.0
+DIR_WEST = [-180.0, 180.0]
+DIR_EAST = 0.0
 
 class DFSPathfinder:
     def __init__(self):
