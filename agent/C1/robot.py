@@ -9,13 +9,11 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
 # Throttle PID Controller values
-KP = 0.002 # 0.002
-KI = 0 
+KP = 0.002 
 KD = 0
 
 # Steering PID Controller Values
-KPS = 0.095 
-KIS = 0
+KPS = 0.098
 KDS = 0.00075 # 0.0008
 
 
@@ -24,8 +22,8 @@ class Robot(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
 
         # PIDController 
-        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
-        self.steering_pid_controller = PIDController(kp=KPS, ki=KIS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
+        self.speed_pid_controller = PIDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
+        self.steering_pid_controller = PIDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
         
         self.speed_setpoint = 0.8
         self.steering_setpoint = 0
@@ -33,9 +31,9 @@ class Robot(CRobLinkAngs):
         self.error_threshold = 0.2 # Ignore small errors --> Errors can be cause by noise
         
         # Noise Filter used to detect intersections
-        self.filter_left = NoiseFilter(window_size=4, noise_threshold=0.1)
-        self.filter_right = NoiseFilter(window_size=4, noise_threshold=0.1)
-        self.filter_center = NoiseFilter(window_size=4, noise_threshold=0.1) 
+        self.filter_left = NoiseFilter(window_size=4)
+        self.filter_right = NoiseFilter(window_size=4)
+        self.filter_center = NoiseFilter(window_size=4) 
 
     def run(self):
         if self.status != 0:
@@ -52,7 +50,6 @@ class Robot(CRobLinkAngs):
             right_sensor = self.measures.irSensor[2]
 
             self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
-
 
             # Calculate the error as the difference between the left and right sensors
             if self.is_intersection(center_sensor, left_sensor, right_sensor): print("Intersection")

@@ -1,4 +1,4 @@
-class PIDController:
+class PDController:
     def __init__(self, kp, kd, time_step, min_output=None, max_output=None):
         self.kp = kp  # Proportional gain --> Corrections based on the current error
         self.kd = kd  # Derivative gain --> Responds to the rate of change of the error. Reduce overshooting, helps dampen the systen and provide a smoother control. Can reduce the response time
@@ -16,6 +16,6 @@ class PIDController:
         self.previous_error = self.error
         output = self.kp*self.error + self.kd*self.derivative_error
         if self.max_output is not None and self.min_output is not None:
-            output = max(-0.05 + self.min_output, min(0.05 + self.max_output, output))
+            output = max(self.min_output, min(self.max_output, output))
 
         return round(output, 2) # Round to two decimal cases

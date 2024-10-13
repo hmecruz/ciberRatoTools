@@ -1,6 +1,6 @@
 from croblink import *
 from low_pass_filter import LowPassFilter
-from pid_controller import PIDController
+from pd_controller import PDController
 from dfs_pathfinding import DFSPathfinder
 
 # Position values to move for each direction
@@ -28,23 +28,21 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
-# Throttle PID Controller values
-KP = 0.3
-KI = 0 
-KD = 0
+# Throttle PD Controller values
+KP = 0.3 # Perfect
+KD = 0 # No need
 
-# Steering PID Controller Values
-KPS = 0.00032
-KIS = 0
-KDS = 0.00015
+# Steering PD Controller Values
+KPS = 0.02 # Perfect
+KDS = 0 # No need
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         
         # PIDController 
-        self.speed_pid_controller = PIDController(kp=KP, ki=KI, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
-        self.direction_pid_controller = PIDController(kp=KPS, ki=KIS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
+        self.speed_pid_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
+        self.direction_pid_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
         
         # Low Pass Filters for position and direction
         self.x_position_filter = LowPassFilter(window_size=5)  # Low-pass filter for x-coordinate
@@ -59,7 +57,7 @@ class Robot(CRobLinkAngs):
         self.position_setpoint = None # # Target position
         self.direction_setpoint = None # Target direction
 
-        # DFSPathfinder
+        # DFS Pathfinder
         self.dfs = DFSPathfinder()
 
     
@@ -75,14 +73,13 @@ class Robot(CRobLinkAngs):
         while True:
 
             self.readSensors()
+            self.current_position = (self.measures.x, self.measures.y)
+            self.current_direction = self.measures.compass
 
             print(f"Current Position: {self.current_position}")
             print(f"Target Position: {self.position_setpoint}")
             print(f"Current Direction: {self.current_direction}")
             print(f"Target Direction: {self.direction_setpoint}")
-    
-            self.current_position = (self.x_position_filter.update(self.measures.x), self.y_position_filter.update(self.measures.y))
-            self.current_direction = self.direction_filter.update(self.measures.compass)
 
             ir_sensors = {
                 "center": self.measures.irSensor[0],
@@ -109,15 +106,14 @@ class Robot(CRobLinkAngs):
 
 
     def move(self):
+        if self.direction_setpoint is not None and self.current_direction != self.direction_setpoint:
+            self.turn()  
 
-        if self.position_setpoint is not None and self.current_direction != self.position_setpoint:
+        elif self.position_setpoint is not None and self.current_position != self.position_setpoint:
             if self.current_direction in (DIR_EAST, DIR_WEST):
                 self.move_to_position(self.current_position[0], self.position_setpoint[0]) # x coordinate
             elif self.current_direction in (DIR_NORTH, DIR_SOUTH):
                 self.move_to_position(self.current_position[1], self.position_setpoint[1]) # y coordinate
-
-        elif self.direction_setpoint is not None and self.current_direction != self.direction_setpoint:
-            self.turn()  
 
         else:
             self.driveMotors(0, 0)  # Stop motors
@@ -129,7 +125,7 @@ class Robot(CRobLinkAngs):
     def turn(self): 
         steering_correction = self.direction_pid_controller.compute(self.current_direction, self.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction) 
-        print(f"Steering Power: ({steering_correction}, {-steering_correction})")
+        print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         
     def move_to_position(self, current_position, position_setpoint): # Special type current position and position setpoint is a single value, x or y
         
