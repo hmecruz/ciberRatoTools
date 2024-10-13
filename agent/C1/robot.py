@@ -44,7 +44,7 @@ class Robot(CRobLinkAngs):
 
         while True:
 
-            # Read IR obstacle sensor values 
+            # Read IR obstacle sensors values 
             self.readSensors() # Read sensor is a blocking action every 50ms --> See Labs/rmi-2425/C1-config.xml
     
             center_sensor = self.measures.irSensor[0]
@@ -81,12 +81,7 @@ class Robot(CRobLinkAngs):
         print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         self.driveMotors(left_motor_power, right_motor_power)
 
-    def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):
-        """Prints the values from the obstacle sensors."""
-        print(f"Center IR Sensor: {center_sensor}") 
-        print(f"Left IR Sensor: {left_sensor}")  
-        print(f"Right IR Sensor: {right_sensor}")  
-
+    
     def is_intersection(self, center_sensor, left_sensor, right_sensor):
         """Detects an intersection based on sensor values."""
         center_sensor = self.filter_center.update(center_sensor)
@@ -94,3 +89,11 @@ class Robot(CRobLinkAngs):
         right_sensor = self.filter_right.update(right_sensor)
 
         return center_sensor <= 1 and left_sensor <= 1.1 and right_sensor <= 1.1
+    
+    def print_obstacle_sensors(self, center_sensor, left_sensor, right_sensor):
+        """Prints the values from the obstacle sensors."""
+        print(f"Center IR Sensor: {center_sensor}") 
+        print(f"Left IR Sensor: {left_sensor}")  
+        print(f"Right IR Sensor: {right_sensor}")  
+
+    
