@@ -16,6 +16,7 @@ class DFSPathfinder:
         self.visited = set()  # Set of visited cells
         self.stack = []  # Stack to keep track of DFS path
         self.directions = [MOVE_NORTH, MOVE_EAST, MOVE_SOUTH, MOVE_WEST]  # Prioritized directions
+        self.directions = [MOVE_EAST, MOVE_SOUTH, MOVE_WEST, MOVE_NORTH]  # Prioritized directions
         
         self.direction_mapping = {
             MOVE_NORTH: NORTH,

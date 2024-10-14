@@ -115,7 +115,7 @@ class Robot(CRobLinkAngs):
             self.movement_flag = MOVE # STEERING IS COMPLETED 
             return False # No Turning
         
-        steering_correction = self.direction_pd_controller.compute(self.current_direction, self.direction_setpoint)
+        steering_correction = self.direction_pd_controller.compute_angle(self.current_direction, self.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction) 
         print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         
@@ -161,7 +161,6 @@ class Robot(CRobLinkAngs):
         self.driveMotors(motor_power, motor_power)    
         print(f"Throttle Power: ({motor_power}, {motor_power})")
 
-
     def get_direction(self):
         """Get the robot's direction within a threshold."""
         directions = {
@@ -172,7 +171,7 @@ class Robot(CRobLinkAngs):
         }
 
         for direction_name, direction_value in directions.items():
-            if isinstance(direction_value, list):
+            if isinstance(direction_value, tuple):
                 # Check for WEST direction which has two values
                 if direction_value[0] + self.direction_error_threshold <= self.current_direction <= direction_value[0] or \
                 direction_value[1] - self.direction_error_threshold <= self.current_direction <= direction_value[1]:

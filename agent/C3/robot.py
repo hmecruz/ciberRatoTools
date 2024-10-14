@@ -1,21 +1,18 @@
 from croblink import *
-from low_pass_filter import LowPassFilter
 from pd_controller import PDController
-from dfs_pathfinding import DFSPathfinder
+from dfs_pathdinder import DFSPathfinder
 
-# Position values to move for each direction
-# 2 coordinates is the equivalent of 1 square in the simulation map 
-MOVE_NORTH = (0, 2)
-MOVE_SOUTH = (0, -2)
-MOVE_WEST = (-2, 0)
-MOVE_EAST = (2, 0)
+
+# Turn | Move
+STEERING = 0
+MOVING = 1
 
 # Compass Values for each direction 
 # -180 to 180 --> If the robot is facing the right (EAST) the compass is 0
-DIR_NORTH = 90
-DIR_SOUTH = -90
-DIR_WEST = [-180, 180]
-DIR_EAST = 0
+NORTH = 90
+SOUTH = -90
+WEST = 180
+EAST = 0
 
 # MAX / MIN Velocity values 
 MAX_POW = 0.15 #lPow rPow max velocity value 
@@ -35,64 +32,138 @@ class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         
-        # PIDController 
-        self.speed_pid_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
-        self.steering_pid_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
-        
-        # Low Pass Filters for position and direction
-        self.x_position_filter = LowPassFilter(window_size=5)  # Low-pass filter for x-coordinate
-        self.y_position_filter = LowPassFilter(window_size=5)  # Low-pass filter for y-coordinate
-        self.direction_filter = LowPassFilter(window_size=5)
+        # PDController 
+        self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
+        self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
-        # Robot direction and position
-        self.initial_position = None # Robot initial position
-        self.current_position = None # Robot current position
-        self.current_direction = None # Robot current direction
-        
-        self.position_setpoint = None # # Target position
-        self.direction_setpoint = None # Target direction
+        # DFSPathfinder
+        self.dfs = DFSPathfinder()
+
+       # Robot Position
+        self.initial_position = None
+        self.previous_position = None
+        self.current_position = None 
+        self.position_setpoint = None 
+
+        # Robot direction 
+        self.previous_direction = None
+        self.current_direction = None 
+        self.direction_setpoint = None 
+
+        # Cell to visit
+        self.cell = None
     
     def run(self):
         if self.status != 0:
             print("Connection refused or error")
             quit()
 
+
         self.readSensors()
         self.initial_position = (self.measures.x, self.measures.y)
-        self.current_position = self.initial_position
-        self.position_setpoint = tuple(map(sum, zip(self.initial_position, MOVE_EAST)))
-        
-        self.current_direction = self.measures.compass
-        self.direction_setpoint = DIR_NORTH
+        self.dfs.initialize(self.initial_position)
+
+        moving_or_turning = STEERING
 
         while True:
+
+            print("\n----------------------------------------\n")
+
+            # Update previous measures
+            self.previous_position = self.current_position
+            self.previous_direction = self.current_direction
             
-            """
-            # Throttle Test
             self.readSensors()
+
+            # Update current measures
             self.current_position = (self.measures.x, self.measures.y)
+            self.current_direction = self.measures.compass
+            
+            print(f"Previous Position: {self.previous_position}")
             print(f"Current Position: {self.current_position}")
             print(f"Target Position: {self.position_setpoint}")
-            speed_control_signal = self.speed_pid_controller.compute(self.current_position[0], self.position_setpoint[0])
-            print(f"Control Signal: {speed_control_signal}")
-            motor_power = speed_control_signal
-            self.driveMotors(motor_power, motor_power)
-            print(f"lPow rPow: ({motor_power}, {motor_power})")
-
-            print("\n----------------------------------------\n")
-            """
-        
-            
-            # Steering Test
-            self.readSensors()
-            self.current_direction = self.measures.compass
+            print(f"Previous Direction: {self.previous_direction}")
             print(f"Current Direction: {self.current_direction}")
             print(f"Target Direction: {self.direction_setpoint}")
-            steering_control_signal = self.steering_pid_controller.compute(self.current_direction, self.direction_setpoint)
-            print(f"Control Signal: {steering_control_signal}")
-            motor_power = steering_control_signal
-            self.driveMotors(-motor_power, motor_power)
-            print(f"lPow rPow: ({-motor_power}, {motor_power})")
 
-            print("\n----------------------------------------\n")
+            ir_sensors = {
+                "center": self.measures.irSensor[0],
+                "left": self.measures.irSensor[1],
+                "right": self.measures.irSensor[2],
+                "back": self.measures.irSensor[3]
+            } 
+
+            if moving_or_turning == STEERING and self.direction_setpoint is not None:
+                print("Entrei no Turn")
+                if self.steering():
+                    print("Virei")
+                    continue
+                moving_or_turning = MOVING
+
+            if moving_or_turning == MOVING and self.position_setpoint is not None:
+                print("Entrei no Move")
+                if self.move(): 
+                    print("Movi")
+                    continue
+                moving_or_turning = STEERING
             
+            print("Não virei e não movi")
+            if self.direction_setpoint is not None and self.steering() : continue # Verify if moving did not change the direction 
+            print("Não virei e não movi e não virei")
+            print("Vou pedir Next Move")
+
+            # REQUEST NEXT MOVE
+            next_move = self.dfs.get_next_move(self.current_position, self.current_direction, ir_sensors)
+            if next_move: 
+                self.direction_setpoint, self.position_setpoint, self.cell = next_move  
+                print(f"Next Move: {next_move}")
+            else: 
+                print("Map exploration is complete")
+                break # Map exploration is complete
+
+
+    def steering(self):
+        if self.previous_direction == self.current_direction == self.direction_setpoint or \
+            (self.previous_direction == self.current_direction and self.current_direction in [180, -180] and self.direction_setpoint in [180, -180]):
+            self.driveMotors(0, 0) # Stop motors
+            return False
+
+        steering_correction = self.steering_pd_controller.compute_angle(self.current_direction, self.direction_setpoint)
+        self.driveMotors(-steering_correction, steering_correction)
+        print(f"Steering Power: ({-steering_correction}, {steering_correction})")
+        return True
+    
+
+    def move(self):
+        if self.previous_position == self.current_position == self.position_setpoint or \
+            (
+                self.previous_position == self.current_position and \
+                self.robot_inside_cell()
+            ):
+
+            self.driveMotors(0, 0) # Stop Motors
+            return False
+            
+        invert_power = self.direction_setpoint in [SOUTH, WEST]
+        if self.direction_setpoint in (WEST, EAST):
+            self.move_to_position(self.current_position[0], self.position_setpoint[0], invert_power) # x coordinate
+        elif self.direction_setpoint in (NORTH, SOUTH):
+            self.move_to_position(self.current_position[1], self.position_setpoint[1], invert_power) # y coordinate
+        
+        return True
+
+    def move_to_position(self, current_val, target_val, invert_power):
+        motor_power = self.speed_pd_controller.compute(current_val, target_val)
+
+        if invert_power:
+            motor_power = -motor_power  # Reverse motor power if robot is facing SOUTH or WEST
+
+        self.driveMotors(motor_power, motor_power)    
+        print(f"Throttle Power: ({motor_power}, {motor_power})")
+        
+
+    def robot_inside_cell(self):
+        x, y = self.current_position
+        (bl_x, bl_y), (tr_x, tr_y) = self.cell.coordinates # Bottom Left and Top Right
+
+        return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)
