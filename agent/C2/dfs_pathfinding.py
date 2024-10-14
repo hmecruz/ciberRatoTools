@@ -16,16 +16,17 @@ class DFSPathfinder:
         self.visited = set()  # Set of visited cells
         self.stack = []  # Stack to keep track of DFS path
         self.directions = [MOVE_NORTH, MOVE_EAST, MOVE_SOUTH, MOVE_WEST]  # Prioritized directions
+        
         self.direction_mapping = {
             MOVE_NORTH: NORTH,
             MOVE_EAST: EAST,
             MOVE_SOUTH: SOUTH,
-            MOVE_WEST: WEST
+            MOVE_WEST: WEST[1]
         }  # Map movement vectors to compass values
 
         self.opposite_direction_mapping = {
             NORTH: SOUTH,
-            EAST: WEST[0],
+            EAST: WEST[1],
             SOUTH: NORTH,
             WEST: EAST
         }
@@ -64,7 +65,7 @@ class DFSPathfinder:
     def get_cell_middle_position(self, cell):
         """Calculate the middle position of a given cell."""
         (bl_x, bl_y), (tr_x, tr_y) = cell
-        return (bl_x + 1, bl_y + 1)
+        return (tr_x - 1, tr_y - 1)
        
     def get_next_move(self, current_position, current_direction, ir_sensors):
         for direction in self.directions:

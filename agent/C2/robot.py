@@ -9,7 +9,7 @@ MOVE = 1
 # Compass values --> -180 to 180
 NORTH = 90.0
 SOUTH = -90.0
-WEST = [-180.0, 180.0]
+WEST = (-180.0, 180.0)
 EAST = 0.0
 
 # Max and Min Motor Power values 
@@ -31,8 +31,8 @@ class Robot(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         
         # PIDController 
-        self.speed_pid_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
-        self.direction_pid_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
+        self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Throttle
+        self.direction_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PIDController Steering
         
         # Robot direction and position
         self.initial_position = None # Robot initial position
@@ -46,8 +46,8 @@ class Robot(CRobLinkAngs):
         self.direction_setpoint = None # Target direction
 
         # Error Threshold
-        self.position_error_threshold = 0.2 
-        self.direction_error_threshold = 2
+        self.position_error_threshold = 0.4
+        self.direction_error_threshold = 10
 
         #  Movemnt Flag
         self.movement_flag = STEERING
@@ -87,11 +87,11 @@ class Robot(CRobLinkAngs):
                 "back": self.measures.irSensor[3]
             } 
 
-            if self.movement_flag == STEERING:
+            if self.movement_flag == STEERING and self.direction_setpoint is not None:
                 if self.turn():
                     print("\n----------------------------------------\n")
                     continue
-            if self.movement_flag == MOVE:
+            if self.movement_flag == MOVE and self.position_setpoint is not None:
                 if self.move():
                     print("\n----------------------------------------\n")
                     continue
@@ -110,47 +110,50 @@ class Robot(CRobLinkAngs):
             
 
     def turn(self):
-        if self.direction_setpoint is None or \
-            self.previous_direction == self.current_direction == self.direction_setpoint: 
-            
+        if self.previous_direction == self.current_direction == self.direction_setpoint:  
             self.driveMotors(0, 0) # Stop Motors
-            self.movement_flag = MOVE # STEERING IS COMPLETED
-            return False # Movement is completed
+            self.movement_flag = MOVE # STEERING IS COMPLETED 
+            return False # No Turning
         
-        steering_correction = self.direction_pid_controller.compute(self.current_direction, self.direction_setpoint)
+        steering_correction = self.direction_pd_controller.compute(self.current_direction, self.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction) 
         print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         
-        return True
+        return True # Turning
     
-
+    
     def move(self):
-        if self.position_setpoint is None or \
-            self.previous_position == self.current_position == self.position_setpoint or (
-            self.previous_position == self.current_position and \
+        # Edge case
+        # Robot is facing WEST or EAST and moving forward
+        # Compass increases or decreases, making the y coordinate increase
+        # So we verify if the current position is within the threshold
+        # This may also happen when travelling NORTH or SOUTH, due to compass variations 
+        
+        if self.previous_position == self.current_position == self.position_setpoint or (
+                self.previous_position == self.current_position and \
                 self.is_within_threshold(self.current_position[0], self.position_setpoint[0], self.position_error_threshold) and \
-                self.is_within_threshold(self.current_position[1], self.position_setpoint[1], self.position_error_threshold)):
-            
+                self.is_within_threshold(self.current_position[1], self.position_setpoint[1], self.position_error_threshold)
+                ): 
+
             self.driveMotors(0, 0) # Stop Motors
             self.movement_flag = STEERING # MOVE IS COMPLETED
-            return False # Movement is completed
-            
-        if not self.is_within_threshold(self.current_direction, self.direction_setpoint, self.direction_error_threshold):
-            self.movement_flag = STEERING # MOVE IS NOT COMPLETED BUT REQUIRES A TURNING ADJUST
-            return True # Movement is not completed
-         
+            return False if self.current_direction == self.direction_setpoint else True 
+             
         current_direction = self.get_direction() 
         invert_power = current_direction in [SOUTH, WEST]  # Invert motor power if facing SOUTH or WEST
         if current_direction in (WEST, EAST):
             self.move_to_position(self.current_position[0], self.position_setpoint[0], invert_power) # x coordinate
         elif current_direction in (NORTH, SOUTH):
             self.move_to_position(self.current_position[1], self.position_setpoint[1], invert_power) # y coordinate
+        else:
+            self.movement_flag = STEERING 
+            return True # Edge Case --> Requires Turning before keep moving forward
 
-        return True # Movement is not completed
+        return True # Moving
 
 
     def move_to_position(self, current_position, position_setpoint, invert_power): 
-        motor_power = self.speed_pid_controller.compute(current_position, position_setpoint)
+        motor_power = self.speed_pd_controller.compute(current_position, position_setpoint)
 
         if invert_power:
             motor_power = -motor_power  # Reverse motor power if robot is facing SOUTH or WEST
@@ -164,8 +167,8 @@ class Robot(CRobLinkAngs):
         directions = {
             'NORTH': NORTH,
             'SOUTH': SOUTH,
-            'WEST': WEST,
-            'EAST': EAST
+            'EAST': EAST,
+            'WEST': WEST
         }
 
         for direction_name, direction_value in directions.items():
