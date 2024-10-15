@@ -26,8 +26,11 @@ class PDController:
         self.derivative_error = (self.error - self.previous_error) / self.time_step
         self.previous_error = self.error
         output = self.kp*self.error + self.kd*self.derivative_error
+         
         if self.max_output is not None and self.min_output is not None:
             output = max(self.min_output, min(self.max_output, output))
+
+        #print(f"Error: {self.error} \nOutput (before rounding): {output}")
 
         return round(output, 2) # Round to two decimal cases
     

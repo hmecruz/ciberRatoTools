@@ -67,7 +67,7 @@ class Robot(CRobLinkAngs):
 
         while True:
 
-            print("\n----------------------------------------\n")
+            #print("\n----------------------------------------\n")
 
             # Update previous measures
             self.previous_position = self.current_position
@@ -77,14 +77,14 @@ class Robot(CRobLinkAngs):
 
             # Update current measures
             self.current_position = (self.measures.x, self.measures.y)
-            self.current_direction = self.measures.compass
+            self.current_direction = self.measures.compass if self.measures.compass != -180 else 180
             
-            print(f"Previous Position: {self.previous_position}")
-            print(f"Current Position: {self.current_position}")
-            print(f"Target Position: {self.position_setpoint}")
-            print(f"Previous Direction: {self.previous_direction}")
-            print(f"Current Direction: {self.current_direction}")
-            print(f"Target Direction: {self.direction_setpoint}")
+            #print(f"Previous Position: {self.previous_position}")
+            #print(f"Current Position: {self.current_position}")
+            #print(f"Target Position: {self.position_setpoint}")
+            #print(f"Previous Direction: {self.previous_direction}")
+            #print(f"Current Direction: {self.current_direction}")
+            #print(f"Target Direction: {self.direction_setpoint}")
 
             ir_sensors = {
                 "center": self.measures.irSensor[0],
@@ -94,43 +94,43 @@ class Robot(CRobLinkAngs):
             } 
 
             if moving_or_turning == STEERING and self.direction_setpoint is not None:
-                print("Entrei no Turn")
+                #print("Entrei no Turn")
                 if self.steering():
-                    print("Virei")
+                    #print("Virei")
                     continue
                 moving_or_turning = MOVING
 
             if moving_or_turning == MOVING and self.position_setpoint is not None:
-                print("Entrei no Move")
+                #print("Entrei no Move")
                 if self.move(): 
-                    print("Movi")
+                    #print("Movi")
                     continue
                 moving_or_turning = STEERING
             
-            print("Não virei e não movi")
+            #print("Não virei e não movi")
             if self.direction_setpoint is not None and self.steering() : continue # Verify if moving did not change the direction 
-            print("Não virei e não movi e não virei")
-            print("Vou pedir Next Move")
+            #print("Não virei e não movi e não virei")
+            #print("Vou pedir Next Move")
 
             # REQUEST NEXT MOVE
             next_move = self.dfs.get_next_move(self.current_position, self.current_direction, ir_sensors)
             if next_move: 
                 self.direction_setpoint, self.position_setpoint, self.cell = next_move  
-                print(f"Next Move: {next_move}")
+                print(f"Next Move: {self.direction_setpoint}, {self.position_setpoint}, {self.cell.coordinates}")
+                print("\n----------------------------------------\n")
             else: 
                 print("Map exploration is complete")
                 break # Map exploration is complete
 
 
     def steering(self):
-        if self.previous_direction == self.current_direction == self.direction_setpoint or \
-            (self.previous_direction == self.current_direction and self.current_direction in [180, -180] and self.direction_setpoint in [180, -180]):
+        if self.previous_direction == self.current_direction == self.direction_setpoint:
             self.driveMotors(0, 0) # Stop motors
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.current_direction, self.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction)
-        print(f"Steering Power: ({-steering_correction}, {steering_correction})")
+        #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         return True
     
 
@@ -159,11 +159,13 @@ class Robot(CRobLinkAngs):
             motor_power = -motor_power  # Reverse motor power if robot is facing SOUTH or WEST
 
         self.driveMotors(motor_power, motor_power)    
-        print(f"Throttle Power: ({motor_power}, {motor_power})")
+        #print(f"Throttle Power: ({motor_power}, {motor_power})")
         
 
     def robot_inside_cell(self):
+        #print(f"Current Position: {self.current_position}")
+        #print(f"Cell: {self.cell.coordinates}")
         x, y = self.current_position
         (bl_x, bl_y), (tr_x, tr_y) = self.cell.coordinates # Bottom Left and Top Right
-
+        #print(f"Robot Inside Cell?: {(bl_x <= x < tr_x) and (bl_y <= y < tr_y)}")
         return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)

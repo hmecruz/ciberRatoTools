@@ -10,7 +10,8 @@ EAST = 0.0
 
 class DFSPathfinder:
     def __init__(self):
-        self.visited = set()  # Set of visited cells
+        #self.visited = set()  # Set of visited cells
+        self.visited = []
         self.stack = []  # Stack to keep track of DFS path
         self.directions = [NORTH, EAST, SOUTH, WEST] # Direction search priority
         
@@ -35,10 +36,15 @@ class DFSPathfinder:
         top_right = (initial_position[0] + 1, initial_position[1] + 1)
         cell = Cell(bottom_left, top_right)
         self.stack.append(cell)
-        self.visited.add(cell)
+        self.visited.append(cell)
 
 
     def get_next_move(self, current_position, current_direction, ir_sensors):
+
+        print(current_position)
+        for i, cell in enumerate(self.visited):
+            print(f"Cell {i+1}: {cell.coordinates}")
+
         for direction in self.directions:
             move_vector = self.directions_to_vector[direction]
             next_position = (current_position[0] + move_vector[0], current_position[1] + move_vector[1])
@@ -47,16 +53,20 @@ class DFSPathfinder:
                 # Check if the move is valid using the IR sensors
                 if self.is_valid_move(current_direction, direction, ir_sensors):
                     cell_next_position = self.create_cell_from_direction(direction)
-                    self.visited.add(cell_next_position)
+                    self.visited.append(cell_next_position)
                     self.stack.append(cell_next_position)  
                     return direction, next_position, cell_next_position  # Return the direction and the next position to move to
         
         # If no valid moves found, backtrack
         if self.stack:
-            self.stack.pop() # Pop the current cell robot is on
+            print("Backtracking")
+            current_cell = self.stack.pop() # Pop the current cell robot is on
             last_cell = self.stack.pop() # Pop the last cell the robot has been
+
+            current_cell_middle_position = current_cell.get_cell_middle_position()
             last_cell_middle_position = last_cell.get_cell_middle_position()
-            return self.opposite_directions_mapping[current_direction], last_cell_middle_position, last_cell
+
+            return self.calculate_backtrack_direction(current_cell_middle_position, last_cell_middle_position), last_cell_middle_position, last_cell
 
         return None
     
@@ -68,6 +78,7 @@ class DFSPathfinder:
             (bl_x, bl_y), (tr_x, tr_y) = cell.coordinates
             if bl_x <= x <= tr_x and bl_y <= y <= tr_y:
                 return True
+        print("False")
         return False
     
     
@@ -131,11 +142,29 @@ class DFSPathfinder:
         sensor = sensor_map.get(current_direction, {}).get(target_direction)
         
         if sensor:
+            #print(ir_sensors)
             return ir_sensors[sensor] <= obstacle_threshold
         
         return False
-
+    
+    def calculate_backtrack_direction(self, current_position, target_position):
         
+        dx = target_position[0] - current_position[0]
+        dy = target_position[1] - current_position[1]
+
+        # Determine the direction based on the differences
+        if abs(dx) > abs(dy):  # Horizontal movement
+            if dx < 0:
+                return 180.0  # WEST
+            else:
+                return 0.0  # EAST
+        else:  # Vertical movement
+            if dy > 0:
+                return 90.0  # NORTH
+            else:
+                return -90.0  # SOUTH
+
+
 class Cell:
     def __init__(self, bottom_left, top_right):
         self.coordinates = (bottom_left, top_right)
