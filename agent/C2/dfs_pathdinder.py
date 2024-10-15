@@ -13,7 +13,7 @@ class DFSPathfinder:
         #self.visited = set()  # Set of visited cells
         self.visited = []
         self.stack = []  # Stack to keep track of DFS path
-        self.directions = [NORTH, EAST, SOUTH, WEST] # Direction search priority
+        self.directions = [NORTH, EAST, WEST, SOUTH] # Direction search priority
         
         self.directions_to_vector = {
             NORTH: MOVE_NORTH,
