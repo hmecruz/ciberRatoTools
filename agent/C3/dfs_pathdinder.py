@@ -40,17 +40,16 @@ class DFSPathfinder:
 
 
     def get_next_move(self, current_position, current_direction, ir_sensors):
-
         print(current_position)
         for i, cell in enumerate(self.visited):
             print(f"Cell {i+1}: {cell.coordinates}")
+        print(ir_sensors)
 
         for direction in self.directions:
             move_vector = self.directions_to_vector[direction]
             next_position = (current_position[0] + move_vector[0], current_position[1] + move_vector[1])
         
             if not self.visited_position(next_position):
-                # Check if the move is valid using the IR sensors
                 if self.is_valid_move(current_direction, direction, ir_sensors):
                     cell_next_position = self.create_cell_from_direction(direction)
                     self.visited.append(cell_next_position)
@@ -60,13 +59,12 @@ class DFSPathfinder:
         # If no valid moves found, backtrack
         if self.stack:
             print("Backtracking")
-            current_cell = self.stack.pop() # Pop the current cell robot is on
-            last_cell = self.stack.pop() # Pop the last cell the robot has been
-
-            current_cell_middle_position = current_cell.get_cell_middle_position()
-            last_cell_middle_position = last_cell.get_cell_middle_position()
-
-            return self.calculate_backtrack_direction(current_cell_middle_position, last_cell_middle_position), last_cell_middle_position, last_cell
+            current_cell = self.stack.pop()  # Current cell from the stack
+            if self.stack:  # Check if there's a previous cell
+                last_cell = self.stack[-1]  # Peek the last cell without popping it
+                current_cell_middle_position = current_cell.get_cell_middle_position()
+                last_cell_middle_position = last_cell.get_cell_middle_position()
+                return self.calculate_backtrack_direction(current_cell_middle_position, last_cell_middle_position), last_cell_middle_position, last_cell
 
         return None
     
@@ -78,7 +76,6 @@ class DFSPathfinder:
             (bl_x, bl_y), (tr_x, tr_y) = cell.coordinates
             if bl_x <= x <= tr_x and bl_y <= y <= tr_y:
                 return True
-        print("False")
         return False
     
     
@@ -103,9 +100,13 @@ class DFSPathfinder:
         else: 
             raise ValueError(f"Invalid direction: {direction}")
             
-        # Return the cell as a tuple of bottom-left and top-right corners
-        return Cell(bottom_left, top_right)
-    
+        new_cell = Cell(bottom_left, top_right)
+        # Ensure the cell is not already visited
+        if not self.visited_position(new_cell.get_cell_middle_position()):
+            return new_cell
+        else:
+            raise ValueError("Trying to create a cell that has already been visited!")
+        
     
     def is_valid_move(self, current_direction, target_direction, ir_sensors):
         
