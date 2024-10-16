@@ -7,7 +7,8 @@ STEERING = 0
 MOVING = 1
 
 # Center Sensor Threshold for detecting impossible moves
-CENTER_SENSOR_THRESHOLD = 5.0
+CENTER_SENSOR_THRESHOLD = 2.5 # After turning and before moving
+CENTER_SENSOR_COLLISION_VALUE = 5.0
 
 # Compass Values for each direction
 NORTH = 90
@@ -192,7 +193,7 @@ class Robot(CRobLinkAngs):
 
     def is_robot_crashing(self):
         ir_sensors = self.get_ir_sensors_readings()
-        if ir_sensors['center'] > CENTER_SENSOR_THRESHOLD:
+        if ir_sensors['center'] > CENTER_SENSOR_COLLISION_VALUE:
             return True
         return False
 

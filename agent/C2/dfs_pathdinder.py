@@ -41,9 +41,9 @@ class DFSPathfinder:
 
     def get_next_move(self, current_position, current_direction, ir_sensors):
         #print(current_position)
-        #for i, cell in enumerate(self.visited):
-        #    print(f"Cell {i+1}: {cell.coordinates}")
-        #print(ir_sensors)
+        for i, cell in enumerate(self.visited):
+            print(f"Cell {i+1}: {cell.coordinates}")
+        print(ir_sensors)
 
         for direction in self.directions:
             move_vector = self.directions_to_vector[direction]
