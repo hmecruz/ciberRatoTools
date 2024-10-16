@@ -40,10 +40,10 @@ class DFSPathfinder:
 
 
     def get_next_move(self, current_position, current_direction, ir_sensors):
-        print(current_position)
+        #print(current_position)
         #for i, cell in enumerate(self.visited):
         #    print(f"Cell {i+1}: {cell.coordinates}")
-        print(ir_sensors)
+        #print(ir_sensors)
 
         for direction in self.directions:
             move_vector = self.directions_to_vector[direction]
@@ -52,8 +52,8 @@ class DFSPathfinder:
             if not self.visited_position(next_position):
                 if self.is_valid_move(current_direction, direction, ir_sensors):
                     cell_next_position = self.create_cell_from_direction(direction)
-                    self.visited.add(cell_next_position)
-                    self.stack.append(cell_next_position)  
+                    #self.visited.add(cell_next_position)
+                    #self.stack.append(cell_next_position)  
                     return direction, next_position, cell_next_position  # Return the direction and the next position to move to
         
         # If no valid moves found, backtrack
@@ -67,6 +67,13 @@ class DFSPathfinder:
                 return self.calculate_backtrack_direction(current_cell_middle_position, last_cell_middle_position), last_cell_middle_position, last_cell
 
         return None
+    
+    
+    def move_success(self, cell):
+        if cell not in self.visited:
+            self.visited.add(cell)
+            self.stack.append(cell)  
+            
     
 
     def visited_position(self, position):
@@ -111,7 +118,7 @@ class DFSPathfinder:
     def is_valid_move(self, current_direction, target_direction, ir_sensors):
         
         # Define threshold for obstacle detection
-        obstacle_threshold = 1.6
+        obstacle_threshold = 1.5
         
         sensor_map = {
             NORTH: {
