@@ -10,8 +10,7 @@ EAST = 0.0
 
 class DFSPathfinder:
     def __init__(self):
-        #self.visited = set()  # Set of visited cells
-        self.visited = []
+        self.visited = set()  # Set of visited cells
         self.stack = []  # Stack to keep track of DFS path
         self.directions = [NORTH, EAST, WEST, SOUTH] # Direction search priority
         
@@ -35,14 +34,15 @@ class DFSPathfinder:
         bottom_left = (initial_position[0] - 1, initial_position[1] - 1)
         top_right = (initial_position[0] + 1, initial_position[1] + 1)
         cell = Cell(bottom_left, top_right)
+        self.visited.add(cell)
         self.stack.append(cell)
-        self.visited.append(cell)
+        
 
 
     def get_next_move(self, current_position, current_direction, ir_sensors):
         print(current_position)
-        for i, cell in enumerate(self.visited):
-            print(f"Cell {i+1}: {cell.coordinates}")
+        #for i, cell in enumerate(self.visited):
+        #    print(f"Cell {i+1}: {cell.coordinates}")
         print(ir_sensors)
 
         for direction in self.directions:
@@ -52,7 +52,7 @@ class DFSPathfinder:
             if not self.visited_position(next_position):
                 if self.is_valid_move(current_direction, direction, ir_sensors):
                     cell_next_position = self.create_cell_from_direction(direction)
-                    self.visited.append(cell_next_position)
+                    self.visited.add(cell_next_position)
                     self.stack.append(cell_next_position)  
                     return direction, next_position, cell_next_position  # Return the direction and the next position to move to
         
@@ -110,8 +110,8 @@ class DFSPathfinder:
     
     def is_valid_move(self, current_direction, target_direction, ir_sensors):
         
-        # Define threshold for obstacle detection (adjust as needed)
-        obstacle_threshold = 1.5
+        # Define threshold for obstacle detection
+        obstacle_threshold = 1.6
         
         sensor_map = {
             NORTH: {

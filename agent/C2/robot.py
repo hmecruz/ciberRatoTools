@@ -2,31 +2,33 @@ from croblink import *
 from pd_controller import PDController
 from dfs_pathdinder import DFSPathfinder
 
-
-# Turn | Move
+# Constants for moving and turning
 STEERING = 0
 MOVING = 1
 
-# Compass Values for each direction 
-# -180 to 180 --> If the robot is facing the right (EAST) the compass is 0
+# Center Sensor Threshold for detecting impossible moves
+CENTER_SENSOR_THRESHOLD = 3.5 
+
+# Compass Values for each direction
 NORTH = 90
 SOUTH = -90
 WEST = 180
 EAST = 0
 
-# MAX / MIN Velocity values 
-MAX_POW = 0.15 #lPow rPow max velocity value 
-MIN_POW = -0.15 #lPow rPow min velocity value 
+# Velocity limits
+MAX_POW = 0.15
+MIN_POW = -0.15
 
-TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
+# Sampling Time
+TIME_STEP = 0.005
 
 # Throttle PD Controller values
-KP = 0.35 # Perfect
-KD = 0 # No need
+KP = 0.35 
+KD = 0 
 
 # Steering PD Controller Values
-KPS = 0.02 # Perfect 
-KDS = 0.00003 # 0.00005
+KPS = 0.02 
+KDS = 0.00003 
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
@@ -45,78 +47,65 @@ class Robot(CRobLinkAngs):
         self.current_position = None 
         self.position_setpoint = None 
 
+        self.last_safe_position = None
+
         # Robot direction 
         self.previous_direction = None
         self.current_direction = None 
         self.direction_setpoint = None 
 
-        # Cell to visit
-        self.cell = None
+        # Cell
+        self.cell = None # Current cell 
+        self.cell_setpoint = None # Cell to visit
+        
     
     def run(self):
         if self.status != 0:
             print("Connection refused or error")
             quit()
 
-
         self.readSensors()
         self.initial_position = (self.measures.x, self.measures.y)
         self.dfs.initialize(self.initial_position)
 
-        moving_or_turning = STEERING
+        state = STEERING
 
         while True:
 
             #print("\n----------------------------------------\n")
 
-            # Update previous measures
-            self.previous_position = self.current_position
-            self.previous_direction = self.current_direction
-            
-            self.readSensors()
+            self.read_sensors_update_measures()
+            ir_sensors = self.get_ir_sensors_readings()
 
-            # Update current measures
-            self.current_position = (self.measures.x, self.measures.y)
-            self.current_direction = self.measures.compass if self.measures.compass != -180 else 180
-            
-            #print(f"Previous Position: {self.previous_position}")
-            #print(f"Current Position: {self.current_position}")
-            #print(f"Target Position: {self.position_setpoint}")
-            #print(f"Previous Direction: {self.previous_direction}")
-            #print(f"Current Direction: {self.current_direction}")
-            #print(f"Target Direction: {self.direction_setpoint}")
-
-            ir_sensors = {
-                "center": self.measures.irSensor[0],
-                "left": self.measures.irSensor[1],
-                "right": self.measures.irSensor[2],
-                "back": self.measures.irSensor[3]
-            } 
-
-            if moving_or_turning == STEERING and self.direction_setpoint is not None:
+            if state == STEERING and self.direction_setpoint is not None:
                 #print("Entrei no Turn")
                 if self.steering():
                     #print("Virei")
                     continue
-                moving_or_turning = MOVING
+                state = MOVING
 
-            if moving_or_turning == MOVING and self.position_setpoint is not None:
+            if state == MOVING and self.position_setpoint is not None:
                 #print("Entrei no Move")
                 if self.move(): 
                     #print("Movi")
                     continue
-                moving_or_turning = STEERING
+                state = STEERING
             
             #print("Não virei e não movi")
-            if self.direction_setpoint is not None and self.steering() : continue # Verify if moving did not change the direction 
+            if self.direction_setpoint is not None and self.steering(): # Verify if moving did not change the direction 
+                continue # Verify if moving did not change the direction 
+            
+            self.last_safe_position = self.current_position # Save position if not able to perform next move
+            self.cell = self.cell_setpoint
+
             #print("Não virei e não movi e não virei")
             #print("Vou pedir Next Move")
 
             # REQUEST NEXT MOVE
             next_move = self.dfs.get_next_move(self.current_position, self.current_direction, ir_sensors)
             if next_move: 
-                self.direction_setpoint, self.position_setpoint, self.cell = next_move  
-                print(f"Next Move: {self.direction_setpoint}, {self.position_setpoint}, {self.cell.coordinates}")
+                self.direction_setpoint, self.position_setpoint, self.cell_setpoint = next_move  
+                print(f"Next Move: {self.direction_setpoint}, {self.position_setpoint}, {self.cell_setpoint.coordinates}")
                 print("\n----------------------------------------\n")
             else: 
                 print("Map exploration is complete")
@@ -135,14 +124,21 @@ class Robot(CRobLinkAngs):
     
 
     def move(self):
+        print(f"Center Sensor: {self.get_ir_sensors_readings().get("center", 0.0)}")
         if self.previous_position == self.current_position == self.position_setpoint or \
             (
                 self.previous_position == self.current_position and \
-                self.robot_inside_cell()
+                self.robot_inside_cell() and \
+                self.get_ir_sensors_readings().get("center", 0.0) <= 2.8
+                
             ):
 
             self.driveMotors(0, 0) # Stop Motors
             return False
+        
+        if self.is_robot_crashing():
+            self.position_setpoint = self.last_safe_position
+            self.cell_setpoint = self.cell
             
         invert_power = self.direction_setpoint in [SOUTH, WEST]
         if self.direction_setpoint in (WEST, EAST):
@@ -163,9 +159,42 @@ class Robot(CRobLinkAngs):
         
 
     def robot_inside_cell(self):
-        #print(f"Current Position: {self.current_position}")
-        #print(f"Cell: {self.cell.coordinates}")
         x, y = self.current_position
-        (bl_x, bl_y), (tr_x, tr_y) = self.cell.coordinates # Bottom Left and Top Right
-        #print(f"Robot Inside Cell?: {(bl_x <= x < tr_x) and (bl_y <= y < tr_y)}")
+        (bl_x, bl_y), (tr_x, tr_y) = self.cell_setpoint.coordinates
         return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)
+    
+
+    def read_sensors_update_measures(self):
+        # Update previous measures
+        self.previous_position = self.current_position
+        self.previous_direction = self.current_direction
+        
+        # Read upcoming data
+        self.readSensors()
+
+        # Update current measures
+        self.current_position = (self.measures.x, self.measures.y)
+        self.current_direction = self.measures.compass if self.measures.compass != -180 else 180
+        
+        # Print measures
+        #print(f"Previous Position: {self.previous_position}")
+        #print(f"Current Position: {self.current_position}")
+        #print(f"Target Position: {self.position_setpoint}")
+        #print(f"Previous Direction: {self.previous_direction}")
+        #print(f"Current Direction: {self.current_direction}")
+        #print(f"Target Direction: {self.direction_setpoint}")
+
+    def is_robot_crashing(self):
+        ir_sensors = self.get_ir_sensors_readings()
+        if ir_sensors['center'] > CENTER_SENSOR_THRESHOLD:
+            print(ir_sensors['center'])
+            return True
+        return False
+
+    def get_ir_sensors_readings(self):
+        return {
+            "center": self.measures.irSensor[0],
+            "left": self.measures.irSensor[1],
+            "right": self.measures.irSensor[2],
+            "back": self.measures.irSensor[3]
+        }
