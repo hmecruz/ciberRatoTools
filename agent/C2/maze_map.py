@@ -62,10 +62,30 @@ class MazeMap:
                 cell_middle_position[0] + vector[0],
                 cell_middle_position[1] + vector[1]
             )
-            if not self.get_cell(neighbour_coords): # If cell not in map
+            if not self.get_cell(neighbour_coords): # If neighbour cell not in map
                 if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
                     return True
         return False
+    
+
+    def get_neighbours(self, cell):
+        """Return a list of neighbour cells"""
+        neighbour_cells = []
+
+        cell_middle_position = cell.get_middle_position() 
+        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
+        
+        for vector in vectors:
+            neighbour_coords = (
+                cell_middle_position[0] + vector[0],
+                cell_middle_position[1] + vector[1]
+            )
+
+            neighbour_cell = self.get_cell(neighbour_coords) # If neighbour cell in map
+            if neighbour_cell is not None: 
+                neighbour_cells.append(neighbour_cell)
+        
+        return neighbour_cells
 
 
     def mark_cell_visited(self, coordinates: tuple):
