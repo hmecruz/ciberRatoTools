@@ -15,18 +15,6 @@ class MazeMap:
         return maze_map
     
     
-    def print_map(self):
-        """Prints the map with ' ' for None and 'X' for cells."""
-        for row in range(-self.rows * 2 + 2, self.rows * 2 - 1, 2):
-            row_str = ""
-            for col in range(-self.cols * 2 + 2, self.cols * 2 - 1, 2):
-                if self.map[(col, row)] is None:
-                    row_str += " "
-                else:
-                    row_str += "X"
-            print(row_str)
-
-  
     def add_cell_map(self, cell, index: tuple):
         """Add cell to map"""
         self.map[(index)] = cell
@@ -82,10 +70,38 @@ class MazeMap:
             )
 
             neighbour_cell = self.get_cell(neighbour_coords) # If neighbour cell in map
-            if neighbour_cell is not None: 
-                neighbour_cells.append(neighbour_cell)
+            if neighbour_cell is not None:
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    neighbour_cells.append(neighbour_cell)
         
         return neighbour_cells
+    
+
+    def print_map(self):
+        map_representation = [[" " for _ in range(55)] for _ in range(27)]
+
+        for row in reversed(-self.rows * 2 + 2, self.rows * 2 - 1, 2):
+            for col in range(-self.cols * 2 + 2, self.cols * 2 - 1, 2): 
+                cell = self.map[(col, row)]
+                
+                map_representation[col][row]
+
+
+                if row == 0 and col == 0:
+                    map_representation[col][]
+                
+                if cell == None:
+                    map_representation[col][row] = "  "
+                    continue
+
+                map_representation[col][row] = "X" if self.cell.left_wall else "XX"
+                map_representation[col+1][row+1] = " -" if self.cell_top_wall else " X"
+                
+        with open("maze_map.txt", "w") as file:
+            for line in map_representation:
+                file.write("".join(line) + "\n")
+        pass
+                
 
 
     def mark_cell_visited(self, coordinates: tuple):

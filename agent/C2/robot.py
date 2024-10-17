@@ -42,7 +42,7 @@ class Robot(CRobLinkAngs):
 
             # Robot reach new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
-            self.robot.cell.mark_walls(self.robot.ir_sensors, self.robot.current_direction)
+            self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
             # Compute next position
             if self.robot.a_star_path:
@@ -51,15 +51,23 @@ class Robot(CRobLinkAngs):
             else: 
                 if not self.get_next_move() : # Compute the next move
                     print("Chamei A*")                
-                    a_star(self)
+                    if a_star(self) == False: break # Map exploration complete
+                        
+        print(self.maze.map())
+        #self.maze.print_map() 
     
 
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
             if sensor_value <= SENSOR_THRESHOLD: # If no wall
                 move_vector = self.robot.sensor_vector_map(sensor_name)
-                next_position = (self.robot.current_position[0] + move_vector[0], self.robot.current_position[1] + move_vector[1])
-                
+                #next_position = (self.robot.current_position[0] + move_vector[0], self.robot.current_position[1] + move_vector[1])
+                cell_middle_position = self.robot.cell.get_middle_position()
+                next_position = (
+                    cell_middle_position[0] + move_vector[0],
+                    cell_middle_position[1] + move_vector[1]
+                )
+
                 if not self.maze.is_cell_visited(next_position): # If cell not visited
                     # Update direction and position setpoint
                     self.robot.position_setpoint = next_position 

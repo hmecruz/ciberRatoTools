@@ -2,23 +2,32 @@ from heapq import heappop, heappush
 from constants import *
 
 
+class PriorityCell:
+    def __init__(self, priority, cell):
+        self.priority = priority
+        self.cell = cell
+
+    def __lt__(self, other):
+        return self.priority < other.priority
+
 def a_star(agent):
     start_cell = agent.robot.cell # Current Cell
     goal_cell = find_closest_cell_with_neighbours(agent)
 
     if not goal_cell:
-        print("No cells with neighbours to explore found.")
-        return
+        print("Map exploration complete.")
+        return False
 
     open_set = [] 
-    heappush(open_set, (0, start_cell))
+    heappush(open_set, PriorityCell(0, start_cell))
     came_from = {}
     g_score = {start_cell: 0}
     f_score = {start_cell: heuristic(start_cell, goal_cell)}
 
     while open_set:
-        cuurrent_priority, current_cell = heappop(open_set) # Cell with the lowest cost
-        
+        current_priority_cell = heappop(open_set)
+        current_cell = current_priority_cell.cell  # Extract the cell from the wrapper
+
         if current_cell == goal_cell:
             agent.robot.a_star_path = reconstruct_path(current_cell, came_from)
             return
@@ -30,7 +39,7 @@ def a_star(agent):
                 came_from[neighbour] = current_cell
                 g_score[neighbour] = tentative_g_score
                 f_score[neighbour] = tentative_g_score + heuristic(neighbour, goal_cell)
-                heappush(open_set, (f_score[neighbour], neighbour))
+                heappush(open_set, PriorityCell(f_score[neighbour], neighbour))
 
 
 def find_closest_cell_with_neighbours(agent):
