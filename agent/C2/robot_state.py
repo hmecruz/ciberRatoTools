@@ -27,8 +27,9 @@ class RobotState:
         self.cell_setpoint = None # Y
         self.cell_index = (0, 0)
         
-        self.visited_cells = set()
-
+        # AStar
+        self.a_star_path = []
+        
 
     def initialize(self, robot): 
         robot.readSensors() # Read sensors
@@ -39,7 +40,6 @@ class RobotState:
         self.cell_setpoint = self.cell
         
         robot.maze.add_cell_map(self.cell, self.cell_index)
-        self.visited_cells.add(self.cell)
 
 
     def read_sensors_update_measures(self, robot):
@@ -61,12 +61,12 @@ class RobotState:
         }
 
         # Print measures
-        print(f"Previous Position: {self.previous_position}")
-        print(f"Current Position: {self.current_position}")
-        print(f"Target Position: {self.position_setpoint}")
-        print(f"Previous Direction: {self.previous_direction}")
-        print(f"Current Direction: {self.current_direction}")
-        print(f"Target Direction: {self.direction_setpoint}")
+        #print(f"Previous Position: {self.previous_position}")
+        #print(f"Current Position: {self.current_position}")
+        #print(f"Target Position: {self.position_setpoint}")
+        #print(f"Previous Direction: {self.previous_direction}")
+        #print(f"Current Direction: {self.current_direction}")
+        #print(f"Target Direction: {self.direction_setpoint}")
 
 
     def switch_to_moving(self):

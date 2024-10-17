@@ -2,6 +2,7 @@ from croblink import *
 from robot_state import RobotState
 from maze_map import MazeMap, Cell
 from pd_controller import PDController
+from a_star import a_star
 from constants import *
 
 
@@ -24,7 +25,7 @@ class Robot(CRobLinkAngs):
         self.robot.initialize(self)
         while True:
             
-            print("\n----------------------------------------\n")
+            #print("\n----------------------------------------\n")
 
             self.robot.read_sensors_update_measures(self) # Update sensor readings and position
             
@@ -39,12 +40,19 @@ class Robot(CRobLinkAngs):
                 self.robot.switch_to_steering()
                 if self.steering(): continue # After finish moving forward adjust direction
 
-
+            # Robot reach new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
+            self.robot.cell.mark_walls(self.robot.ir_sensors, self.robot.current_direction)
             
-            self.get_next_move() # Compute the next move
-
-            
+            # Compute next position
+            if self.robot.a_star_path:
+                print("Estou a seguir path")
+                self.follow_path()
+            else: 
+                if not self.get_next_move() : # Compute the next move
+                    print("Chamei A*")                
+                    a_star(self)
+    
 
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
@@ -62,8 +70,35 @@ class Robot(CRobLinkAngs):
                     next_cell = self.create_cell_from_vector(move_vector)
                     self.robot.cell_setpoint = next_cell
                     self.maze.add_cell_map(next_cell, self.robot.cell_index)
-                    self.robot.visited_cells.add(self.robot.cell_setpoint)
-                    break
+                    return True # Success 
+                
+        return False # Not able to compute next move
+    
+    
+    def follow_path(self):
+        self.robot.cell_setpoint = self.robot.a_star_path.pop(0) 
+        
+        current_cell_middle_position = self.robot.cell.get_middle_position()
+        cell_setpoint_middle_position = self.robot.cell_setpoint.get_middle_position()
+
+        move_vector = (
+            cell_setpoint_middle_position[0] - current_cell_middle_position[0],
+            cell_setpoint_middle_position[1] - current_cell_middle_position[1]
+        )
+
+        self.robot.cell_index = (
+            self.robot.cell_index[0] + move_vector[0], 
+            self.robot.cell_index[1] + move_vector[1]
+        )
+
+        next_position = (
+            self.robot.current_position[0] + move_vector[0], 
+            self.robot.current_position[1] + move_vector[1]
+        )
+
+        self.robot.position_setpoint = next_position 
+        self.robot.direction_setpoint = vector_to_direction(move_vector)    
+                
     
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint:
@@ -72,8 +107,9 @@ class Robot(CRobLinkAngs):
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction)
-        print(f"Steering Power: ({-steering_correction}, {steering_correction})")
+        #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         return True
+    
     
     def move_forward(self):
         if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
@@ -92,6 +128,7 @@ class Robot(CRobLinkAngs):
             self.move_to_position(self.robot.current_position[1], self.robot.position_setpoint[1], invert_power) # y coordinate
         
         return True
+    
 
     def move_to_position(self, current_val, target_val, invert_power):
         motor_power = self.speed_pd_controller.compute(current_val, target_val)
@@ -100,7 +137,7 @@ class Robot(CRobLinkAngs):
             motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
         self.driveMotors(motor_power, motor_power)    
-        print(f"Throttle Power: ({motor_power}, {motor_power})")
+        #print(f"Throttle Power: ({motor_power}, {motor_power})")
 
 
     def create_cell_from_vector(self, vector):
