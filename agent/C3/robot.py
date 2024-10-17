@@ -8,8 +8,8 @@ MOVING = 1
 
 # Center Sensor Threshold for detecting impossible moves
 CENTER_SENSOR_THRESHOLD = 2.5 # After turning and before moving
-CENTER_SENSOR_COLLISION_VALUE = 5.0 # While moving
- 
+CENTER_SENSOR_COLLISION_VALUE = 5.0
+
 # Compass Values for each direction
 NORTH = 90
 SOUTH = -90
@@ -33,7 +33,7 @@ KDS = 0.00003
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
-        CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
+        CRobLinkAngs.__init__(self, rob_name, rob_id, angs=[0, 90, -90, 180], host=host)
         
         # PDController 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
@@ -76,7 +76,7 @@ class Robot(CRobLinkAngs):
 
         while True:
 
-            print("\n----------------------------------------\n")
+            #print("\n----------------------------------------\n")
 
             self.read_sensors_update_measures()
             ir_sensors = self.get_ir_sensors_readings()
@@ -86,14 +86,8 @@ class Robot(CRobLinkAngs):
                 if self.steering():
                     #print("Virei")
                     continue
-                state = MOVING 
-            
-            if ir_sensors.get("center", 0.0) >= CENTER_SENSOR_THRESHOLD:
-                state = STEERING 
-                self.position_setpoint = self.last_safe_position
-                self.cell_setpoint = self.cell
-                self.next_move_success = False 
-            
+                state = MOVING
+
             if state == MOVING and self.position_setpoint is not None:
                 #print("Entrei no Move")
                 if self.move(): 
@@ -120,7 +114,7 @@ class Robot(CRobLinkAngs):
                 self.direction_setpoint, self.position_setpoint, self.cell_setpoint = next_move  
                 self.next_move_success = True 
                 print(f"Next Move: {self.direction_setpoint}, {self.position_setpoint}, {self.cell_setpoint.coordinates}")
-                #print("\n----------------------------------------\n")
+                print("\n----------------------------------------\n")
             else: 
                 print("Map exploration is complete")
                 break # Map exploration is complete
@@ -142,7 +136,7 @@ class Robot(CRobLinkAngs):
             (
                 self.previous_position == self.current_position and \
                 self.robot_inside_cell() and \
-                self.get_ir_sensors_readings().get("center", 0.0) <= 3.5
+                self.get_ir_sensors_readings().get("center", 0.0) <= 4.8
             ):
 
             self.driveMotors(0, 0) # Stop Motors
@@ -190,12 +184,12 @@ class Robot(CRobLinkAngs):
         self.current_direction = self.measures.compass if self.measures.compass != -180 else 180
         
         # Print measures
-        print(f"Previous Position: {self.previous_position}")
-        print(f"Current Position: {self.current_position}")
-        print(f"Target Position: {self.position_setpoint}")
-        print(f"Previous Direction: {self.previous_direction}")
-        print(f"Current Direction: {self.current_direction}")
-        print(f"Target Direction: {self.direction_setpoint}")
+        #print(f"Previous Position: {self.previous_position}")
+        #print(f"Current Position: {self.current_position}")
+        #print(f"Target Position: {self.position_setpoint}")
+        #print(f"Previous Direction: {self.previous_direction}")
+        #print(f"Current Direction: {self.current_direction}")
+        #print(f"Target Direction: {self.direction_setpoint}")
 
     def is_robot_crashing(self):
         ir_sensors = self.get_ir_sensors_readings()
