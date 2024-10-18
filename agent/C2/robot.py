@@ -53,8 +53,7 @@ class Robot(CRobLinkAngs):
                     print("Chamei A*")                
                     if a_star(self) == False: break # Map exploration complete
                         
-        print(self.maze.map())
-        #self.maze.print_map() 
+        self.maze.print_map() 
     
 
     def get_next_move(self):
