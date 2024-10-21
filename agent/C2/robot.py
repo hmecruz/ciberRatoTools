@@ -3,6 +3,7 @@ from robot_state import RobotState
 from maze_map import MazeMap, Cell
 from pd_controller import PDController
 from a_star import a_star
+from bfs import bfs
 from constants import *
 
 
@@ -45,13 +46,16 @@ class Robot(CRobLinkAngs):
             self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
             # Compute next position
-            if self.robot.a_star_path:
+            if self.robot.pathfinding_path:
                 print("Estou a seguir path")
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
-                    print("Chamei A*")                
-                    if a_star(self) == False: break # Map exploration complete
+                    #print("Chamei A*")                
+                    #if a_star(self) == False: break # Map exploration complete
+                    print("BFS")
+                    if bfs(self) == False: break
+                        
                         
         self.maze.print_map() 
     
@@ -83,7 +87,7 @@ class Robot(CRobLinkAngs):
     
     
     def follow_path(self):
-        self.robot.cell_setpoint = self.robot.a_star_path.pop(0) 
+        self.robot.cell_setpoint = self.robot.pathfinding_path.pop(0) 
         
         current_cell_middle_position = self.robot.cell.get_middle_position()
         cell_setpoint_middle_position = self.robot.cell_setpoint.get_middle_position()

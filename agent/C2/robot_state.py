@@ -27,10 +27,10 @@ class RobotState:
         self.cell_setpoint = None # Y
         self.cell_index = (0, 0)
         
-        # AStar
-        self.a_star_path = []
+        # Pathfinding
+        self.pathfinding_path = []
         
-
+       
     def initialize(self, robot): 
         robot.readSensors() # Read sensors
         self.initial_position = (robot.measures.x, robot.measures.y)

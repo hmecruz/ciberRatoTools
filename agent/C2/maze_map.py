@@ -92,7 +92,7 @@ class MazeMap:
     
 
     def get_neighbours(self, cell):
-        """Return a list of neighbour cells"""
+        """Return a list of neighbour cells that can be explored"""
         neighbour_cells = []
 
         cell_middle_position = cell.get_middle_position() 
