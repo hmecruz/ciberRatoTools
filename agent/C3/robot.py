@@ -1,206 +1,174 @@
 from croblink import *
+from robot_state import RobotState
+from maze_map import MazeMap, Cell
 from pd_controller import PDController
-from dfs_pathdinder import DFSPathfinder
+from a_star import a_star
+from bfs import bfs, shortest_path_bfs
+from constants import *
 
-# Constants for moving and turning
-STEERING = 0
-MOVING = 1
-
-# Center Sensor Threshold for detecting impossible moves
-CENTER_SENSOR_THRESHOLD = 2.5 # After turning and before moving
-CENTER_SENSOR_COLLISION_VALUE = 5.0
-
-# Compass Values for each direction
-NORTH = 90
-SOUTH = -90
-WEST = 180
-EAST = 0
-
-# Velocity limits
-MAX_POW = 0.15
-MIN_POW = -0.15
-
-# Sampling Time
-TIME_STEP = 0.005
-
-# Throttle PD Controller values
-KP = 0.35 
-KD = 0 
-
-# Steering PD Controller Values
-KPS = 0.02 
-KDS = 0.00003 
 
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angs=[0, 90, -90, 180], host=host)
         
-        # PDController 
+        self.robot = RobotState()  # Encapsulates robot state
+        self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
+
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
-        # DFSPathfinder
-        self.dfs = DFSPathfinder()
 
-       # Robot Position
-        self.initial_position = None
-        self.previous_position = None
-        self.current_position = None 
-        self.position_setpoint = None 
-
-        self.last_safe_position = None
-
-        # Robot direction 
-        self.previous_direction = None
-        self.current_direction = None 
-        self.direction_setpoint = None 
-
-        # Cell
-        self.cell = None # Current cell 
-        self.cell_setpoint = None # Cell to visit
-
-        # Next Move
-        self.next_move_success = True
-        
-    
     def run(self):
         if self.status != 0:
             print("Connection refused or error")
             quit()
 
-        self.readSensors()
-        self.initial_position = (self.measures.x, self.measures.y)
-        self.dfs.initialize(self.initial_position)
-
-        state = STEERING
-
+        self.robot.initialize(self)
         while True:
-
+            
             #print("\n----------------------------------------\n")
 
-            self.read_sensors_update_measures()
-            ir_sensors = self.get_ir_sensors_readings()
-
-            if state == STEERING and self.direction_setpoint is not None:
-                #print("Entrei no Turn")
+            self.robot.read_sensors_update_measures(self) # Update sensor readings and position
+            
+            if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
                 if self.steering():
-                    #print("Virei")
                     continue
-                state = MOVING
+                self.robot.switch_to_moving()
 
-            if state == MOVING and self.position_setpoint is not None:
-                #print("Entrei no Move")
-                if self.move(): 
-                    #print("Movi")
+            if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
+                if self.move_forward(): 
                     continue
-                state = STEERING
-            
-            #print("Não virei e não movi")
-            if self.direction_setpoint is not None and self.steering(): # Verify if moving did not change the direction 
-                continue # Verify if moving did not change the direction 
-            
-            self.last_safe_position = self.current_position # Save robot state before attempting next move
-            self.cell = self.cell_setpoint
+                self.robot.switch_to_steering()
+                if self.steering(): continue # After finish moving forward adjust direction
 
-            #print("Não virei e não movi e não virei")
-            #print("Vou pedir Next Move")
+            # Robot reach new position
+            self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
+            self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
 
-            if self.next_move_success and self.cell is not None:
-                self.dfs.move_success(self.cell)
 
-            # REQUEST NEXT MOVE
-            next_move = self.dfs.get_next_move(self.current_position, self.current_direction, ir_sensors)
-            if next_move: 
-                self.direction_setpoint, self.position_setpoint, self.cell_setpoint = next_move  
-                self.next_move_success = True 
-                print(f"Next Move: {self.direction_setpoint}, {self.position_setpoint}, {self.cell_setpoint.coordinates}")
-                print("\n----------------------------------------\n")
+            if self.measures.ground == 1: 
+                self.robot.first_target_cell = self.robot.cell
+                start_cell = self.maze.get_cell(self.robot.initial_position)
+                self.robot.target_cell_path.extend(shortest_path_bfs(start_cell, self.robot.first_target_cell, self.maze))
+            elif self.measures.ground == 2:
+                self.robot.second_target_cell = self.robot.cell
+                self.robot.target_cell_path.extend(shortest_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze))
+            elif self.robot
+
+            # Compute next position
+            if self.robot.pathfinding_path:
+                print("Estou a seguir path")
+                self.follow_path()
             else: 
-                print("Map exploration is complete")
-                break # Map exploration is complete
+                if not self.get_next_move() : # Compute the next move
+                    print("BFS")
+                    if bfs(self) == False: break
+          
+        
+    
+    def get_next_move(self):
+        for sensor_name, sensor_value in self.robot.ir_sensors.items():
+            if sensor_value <= SENSOR_THRESHOLD: # If no wall
+                move_vector = self.robot.sensor_vector_map(sensor_name)
+                #next_position = (self.robot.current_position[0] + move_vector[0], self.robot.current_position[1] + move_vector[1])
+                cell_middle_position = self.robot.cell.get_middle_position()
+                next_position = (
+                    cell_middle_position[0] + move_vector[0],
+                    cell_middle_position[1] + move_vector[1]
+                )
+
+                if not self.maze.is_cell_visited(next_position): # If cell not visited
+                    # Update direction and position setpoint
+                    self.robot.position_setpoint = next_position 
+                    self.robot.direction_setpoint = vector_to_direction(move_vector)
+                    
+                    # Cell, creation and add to map and visited
+                    self.robot.cell_index = (self.robot.cell_index[0] + move_vector[0], self.robot.cell_index[1] + move_vector[1])
+                    next_cell = self.create_cell_from_vector(move_vector)
+                    self.robot.cell_setpoint = next_cell
+                    self.maze.add_cell_map(next_cell, self.robot.cell_index)
+                    return True # Success 
+                
+        return False # Not able to compute next move
 
 
+    def follow_path(self):
+        self.robot.cell_setpoint = self.robot.pathfinding_path.pop(0) 
+        
+        current_cell_middle_position = self.robot.cell.get_middle_position()
+        cell_setpoint_middle_position = self.robot.cell_setpoint.get_middle_position()
+
+        move_vector = (
+            cell_setpoint_middle_position[0] - current_cell_middle_position[0],
+            cell_setpoint_middle_position[1] - current_cell_middle_position[1]
+        )
+
+        self.robot.cell_index = (
+            self.robot.cell_index[0] + move_vector[0], 
+            self.robot.cell_index[1] + move_vector[1]
+        )
+
+        next_position = (
+            current_cell_middle_position[0] + move_vector[0], 
+            current_cell_middle_position[1] + move_vector[1]
+        )
+
+        self.robot.position_setpoint = next_position 
+        self.robot.direction_setpoint = vector_to_direction(move_vector)    
+                
+    
     def steering(self):
-        if self.previous_direction == self.current_direction == self.direction_setpoint:
+        if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint:
             self.driveMotors(0, 0) # Stop motors
             return False
 
-        steering_correction = self.steering_pd_controller.compute_angle(self.current_direction, self.direction_setpoint)
+        steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
         self.driveMotors(-steering_correction, steering_correction)
         #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         return True
     
-
-    def move(self):
-        if self.previous_position == self.current_position == self.position_setpoint or \
+    
+    def move_forward(self):
+        if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
             (
-                self.previous_position == self.current_position and \
-                self.robot_inside_cell() and \
-                self.get_ir_sensors_readings().get("center", 0.0) <= 4.8
+                self.robot.previous_position == self.robot.current_position and \
+                Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
             ):
 
             self.driveMotors(0, 0) # Stop Motors
             return False
-        
-        if self.is_robot_crashing(): #  
-            self.position_setpoint = self.last_safe_position
-            self.cell_setpoint = self.cell
-            self.next_move_success = False 
-            
-        invert_power = self.direction_setpoint in [SOUTH, WEST]
-        if self.direction_setpoint in (WEST, EAST):
-            self.move_to_position(self.current_position[0], self.position_setpoint[0], invert_power) # x coordinate
-        elif self.direction_setpoint in (NORTH, SOUTH):
-            self.move_to_position(self.current_position[1], self.position_setpoint[1], invert_power) # y coordinate
+                
+        invert_power = self.robot.direction_setpoint in [SOUTH, WEST]
+        if self.robot.direction_setpoint in (WEST, EAST):
+            self.move_to_position(self.robot.current_position[0], self.robot.position_setpoint[0], invert_power) # x coordinate
+        elif self.robot.direction_setpoint in (NORTH, SOUTH):
+            self.move_to_position(self.robot.current_position[1], self.robot.position_setpoint[1], invert_power) # y coordinate
         
         return True
+    
 
     def move_to_position(self, current_val, target_val, invert_power):
         motor_power = self.speed_pd_controller.compute(current_val, target_val)
 
         if invert_power:
-            motor_power = -motor_power  # Reverse motor power if robot is facing SOUTH or WEST
+            motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
         self.driveMotors(motor_power, motor_power)    
         #print(f"Throttle Power: ({motor_power}, {motor_power})")
+
+
+    def create_cell_from_vector(self, vector):
+        """Create a cell based on the robot's next position vector and current cell."""
+        (bl_x, bl_y), (tr_x, tr_y) = self.robot.cell.coordinates
+
+        if vector == MOVE_NORTH: 
+            bottom_left = (bl_x, tr_y)
+        elif vector == MOVE_WEST: 
+            bottom_left = (bl_x - 2, bl_y)
+        elif vector == MOVE_EAST: 
+            bottom_left = (tr_x, bl_y)
+        elif vector == MOVE_SOUTH: 
+            bottom_left = (bl_x, bl_y - 2)
+            
+        return Cell(bottom_left)
         
-
-    def robot_inside_cell(self):
-        x, y = self.current_position
-        (bl_x, bl_y), (tr_x, tr_y) = self.cell_setpoint.coordinates
-        return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)
-    
-
-    def read_sensors_update_measures(self):
-        # Update previous measures
-        self.previous_position = self.current_position
-        self.previous_direction = self.current_direction
-        
-        # Read upcoming data
-        self.readSensors()
-
-        # Update current measures
-        self.current_position = (self.measures.x, self.measures.y)
-        self.current_direction = self.measures.compass if self.measures.compass != -180 else 180
-        
-        # Print measures
-        #print(f"Previous Position: {self.previous_position}")
-        #print(f"Current Position: {self.current_position}")
-        #print(f"Target Position: {self.position_setpoint}")
-        #print(f"Previous Direction: {self.previous_direction}")
-        #print(f"Current Direction: {self.current_direction}")
-        #print(f"Target Direction: {self.direction_setpoint}")
-
-    def is_robot_crashing(self):
-        ir_sensors = self.get_ir_sensors_readings()
-        if ir_sensors['center'] > CENTER_SENSOR_COLLISION_VALUE:
-            return True
-        return False
-
-    def get_ir_sensors_readings(self):
-        return {
-            "center": self.measures.irSensor[0],
-            "left": self.measures.irSensor[1],
-            "right": self.measures.irSensor[2],
-            "back": self.measures.irSensor[3]
-        }

@@ -49,7 +49,7 @@ class Robot(CRobLinkAngs):
             left_sensor = self.measures.irSensor[1]
             right_sensor = self.measures.irSensor[2]
 
-            self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
+            #self.print_obstacle_sensors(center_sensor, left_sensor, right_sensor)
 
             # Calculate the error as the difference between the left and right sensors
             if self.is_intersection(center_sensor, left_sensor, right_sensor): print("Intersection")
@@ -73,9 +73,9 @@ class Robot(CRobLinkAngs):
         left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_control_signal))  # Reduce power to left motor for right turn
         right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_control_signal))  # Reduce power to right motor for left turn
         
-        print(f"Speed Control Signal: {speed_control_signal}")
-        print(f"Steering Control Signal: {steering_control_signal}")
-        print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+        #print(f"Speed Control Signal: {speed_control_signal}")
+        #print(f"Steering Control Signal: {steering_control_signal}")
+        #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         self.driveMotors(left_motor_power, right_motor_power)
 
     
