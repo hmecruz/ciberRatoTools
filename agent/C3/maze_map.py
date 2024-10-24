@@ -6,9 +6,7 @@ class MazeMap:
         self.cols = cols
         self.cell_size = 2 # 2 coordinates
         self.map = self._create_map()
-        self.robot_initial_position = (cols*2, rows*2) # Normalize initial robot position
-
-
+        
     def _create_map(self):
         """Creates a 4x larger map representation with the robot starting at the center (0, 0)"""        
         maze_map = {}
@@ -18,40 +16,8 @@ class MazeMap:
         return maze_map
     
 
-    def print_map(self):
-        map_representation = [[" " for _ in range(self.cols * self.cell_size * 2 - 1)] for _ in range(self.rows * self.cell_size * 2 - 1)]
-    
-        # map[Linhas][Colunas]
-        for pos, cell in self.map.items():
-            col, row = pos # col --> x, linha --> y 
-            if cell is None: continue
-            print(pos)
-            #print(f"({col}, {row})") # x, y
-            #print(cell.top_wall)
-            #print(cell.left_wall)
-            #print(cell.right_wall)
-            #print(cell.bottom_wall)
-
-            map_representation[row - 1][col - 1] = "X"
-            map_representation[row - 1][col] = "|" if cell.right_wall else "X"
-            map_representation[row - 1][col - 2] = "|" if cell.left_wall else "X"
-            map_representation[row - 2][col - 1] = "-" if cell.top_wall else "X"
-            map_representation[row][col - 1] = "-" if cell.bottom_wall else "X"
-        
-        map_representation[14 - 1][28 - 1] = "I"
-
-        # Write the final map to a text file
-        with open("maze.map", "w") as file:
-            for line in map_representation:
-                file.write("".join(line) + "\n")
-                
-    
     def add_cell_map(self, cell, index: tuple):
         """Add cell to map"""
-        index = (
-            index[0] + self.robot_initial_position[0],
-            -index[1] + self.robot_initial_position[1]
-        )
         self.map[(index)] = cell
         cell.mark_visited()
 
@@ -68,7 +34,13 @@ class MazeMap:
                 return cell
         return None
     
-    
+    def get_cell_index(self, cell):
+        for key, value in self.map.items():
+            if value is None: continue
+            if cell == value:
+                return key
+        return None
+
     def get_visited_cells(self):
         """Returns a list of all visited cells."""
         visited_cells = [cell for cell in self.map.values() if cell and cell.is_visited()]

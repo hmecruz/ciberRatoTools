@@ -2,7 +2,6 @@ from croblink import *
 from robot_state import RobotState
 from maze_map import MazeMap, Cell
 from pd_controller import PDController
-from a_star import a_star
 from bfs import bfs, shortest_path_bfs
 from constants import *
 
@@ -46,25 +45,21 @@ class Robot(CRobLinkAngs):
             self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
 
 
-            if self.measures.ground == 1: 
+            if self.robot.first_target_cell is None and self.measures.ground == 1: 
                 self.robot.first_target_cell = self.robot.cell
-                start_cell = self.maze.get_cell(self.robot.initial_position)
-                self.robot.target_cell_path.extend(shortest_path_bfs(start_cell, self.robot.first_target_cell, self.maze))
-            elif self.measures.ground == 2:
-                self.robot.second_target_cell = self.robot.cell
-                self.robot.target_cell_path.extend(shortest_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze))
-            elif self.robot
 
+            if self.robot.second_target_cell is None and self.measures.ground == 2:
+                self.robot.second_target_cell = self.robot.cell
+
+        
             # Compute next position
             if self.robot.pathfinding_path:
-                print("Estou a seguir path")
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
-                    print("BFS")
                     if bfs(self) == False: break
           
-        
+        self.compute_target_cell_path()
     
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
@@ -116,6 +111,31 @@ class Robot(CRobLinkAngs):
         self.robot.position_setpoint = next_position 
         self.robot.direction_setpoint = vector_to_direction(move_vector)    
                 
+
+    def compute_target_cell_path(self):    
+        initial_cell = self.maze.get_cell(self.robot.initial_position)
+    
+        path1 = shortest_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
+        path2 = shortest_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze)
+        path3 = shortest_path_bfs(self.robot.second_target_cell, initial_cell, self.maze)
+
+        self.robot.target_cell_path.extend(path1)
+        self.robot.target_cell_path.extend(path2[1:-1])
+        self.robot.target_cell_path.extend(path3)
+
+        for cell in self.robot.target_cell_path:
+            x, y = self.maze.get_cell_index(cell)
+            
+            # Write the final map to a text file
+            with open("planning.path", "w") as file:
+                for cell in self.robot.target_cell_path:
+                    x, y = self.maze.get_cell_index(cell)
+                    x = int(x)
+                    y = int(y)
+                    file.write(f"{x} {y}\n")
+                
+        return True
+            
     
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint:
