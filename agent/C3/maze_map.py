@@ -46,7 +46,6 @@ class MazeMap:
         visited_cells = [cell for cell in self.map.values() if cell and cell.is_visited()]
         return visited_cells
     
-
     def has_neighbours_to_explore(self, cell):
         """Check if the given cell has neighbours to explore."""
         cell_middle_position = cell.get_middle_position() 
@@ -62,7 +61,6 @@ class MazeMap:
                     return True
         return False
     
-
     def get_neighbours(self, cell):
         """Return a list of known neighbour cells"""
         neighbour_cells = []
@@ -81,6 +79,51 @@ class MazeMap:
                 if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
                     neighbour_cells.append(neighbour_cell)
         
+        return neighbour_cells
+    
+
+    def get_all_neighbours(self, cell):
+        """
+        Return a list of unkown and known neighbour cells
+        Unknown cells are treated as passages
+        Unknown cells register wall info from adjacent known cells
+        """
+        neighbour_cells = []
+
+        cell_middle_position = cell.get_middle_position() 
+        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
+        
+        for vector in vectors:
+            neighbour_coords = (
+                cell_middle_position[0] + vector[0],
+                cell_middle_position[1] + vector[1]
+            )
+
+            neighbour_cell = self.get_cell(neighbour_coords)
+            if neighbour_cell is not None: 
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    neighbour_cells.append(neighbour_cell)
+            else: 
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    fake_cell = Cell((neighbour_coords[0] - 1, neighbour_coords[1] - 1)) # Cell Bottom Left 
+                    fake_cell_neighbours = self.get_neighbours(fake_cell)
+                    for neighbour in fake_cell_neighbours:
+                        # Mark fake_cell walls based on known cells
+                        vector = (
+                        neighbour.bl_x - fake_cell.bl_x,
+                        neighbour.bl_y - fake_cell.bl_y
+                        )
+                        if vector == MOVE_NORTH and neighbour.bottom_wall:
+                            fake_cell.top_wall = True
+                        elif vector == MOVE_SOUTH and neighbour.top_wall:
+                            fake_cell.bottom_wall = True
+                        elif vector == MOVE_WEST and neighbour.right_wall:
+                            fake_cell.left_wall = True
+                        elif vector == MOVE_EAST and neighbour.left_wall:
+                            fake_cell.right_wall = True
+
+                    neighbour_cells.append(fake_cell)
+
         return neighbour_cells
     
 

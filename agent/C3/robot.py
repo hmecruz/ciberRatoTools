@@ -1,8 +1,10 @@
+import sys
+
 from croblink import *
 from robot_state import RobotState
 from maze_map import MazeMap, Cell
 from pd_controller import PDController
-from bfs import bfs, shortest_path_bfs
+from bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 
 
@@ -47,17 +49,20 @@ class Robot(CRobLinkAngs):
 
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
                 self.robot.first_target_cell = self.robot.cell
-
             if self.robot.second_target_cell is None and self.measures.ground == 2:
                 self.robot.second_target_cell = self.robot.cell
 
-        
+            if self.robot.first_target_cell is not None and self.robot.second_target_cell is not None:
+                if self.compute_target_cell_path():
+                    sys.exit(0)
+
+
             # Compute next position
             if self.robot.pathfinding_path:
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
-                    if bfs(self) == False: break
+                    if bfs(self) == False: break # Map exploration complete
           
         self.compute_target_cell_path()
     
@@ -116,8 +121,22 @@ class Robot(CRobLinkAngs):
         initial_cell = self.maze.get_cell(self.robot.initial_position)
     
         path1 = shortest_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
+        path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
+        print(len(path1))
+        print(len(path1_unvisited))
+        if len(path1) != len(path1_unvisited): return False
+
         path2 = shortest_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze)
+        path2_unvisited = shortest_unvisited_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze)
+        print(len(path2))
+        print(len(path2_unvisited))
+        if len(path2) != len(path2_unvisited): return False
+
         path3 = shortest_path_bfs(self.robot.second_target_cell, initial_cell, self.maze)
+        path3_unvisited = shortest_unvisited_path_bfs(self.robot.second_target_cell, initial_cell, self.maze)
+        print(len(path3))
+        print(len(path3_unvisited))
+        if len(path3) != len(path3_unvisited): return False
 
         self.robot.target_cell_path.extend(path1)
         self.robot.target_cell_path.extend(path2[1:-1])

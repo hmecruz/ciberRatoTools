@@ -28,6 +28,7 @@ def shortest_path_bfs(start_cell, goal_cell, maze):
     """
     Find the closest known path from a start cell to a goal cell
     """
+
     queue = deque([start_cell])
     came_from = {start_cell: None}
 
@@ -36,9 +37,33 @@ def shortest_path_bfs(start_cell, goal_cell, maze):
 
         if current_cell == goal_cell:
             return reconstruct_path(current_cell, came_from)
-
+        
         for neighbour in maze.get_neighbours(current_cell):
             if neighbour not in came_from:
+                queue.append(neighbour)
+                came_from[neighbour] = current_cell
+
+    print("Path to goal not found.")
+    return False
+
+
+def shortest_unvisited_path_bfs(start_cell, goal_cell, maze):
+    """
+    Find the closest known path from a start cell to a goal cell
+    If consider_unvisited is True, treat unvisited cells as clear passages.
+    """
+
+    queue = deque([start_cell])
+    came_from = {start_cell: None}
+
+    while queue:
+        current_cell = queue.popleft()
+
+        if current_cell.coordinates == goal_cell.coordinates:
+            return reconstruct_path(current_cell, came_from)
+        
+        for neighbour in maze.get_all_neighbours(current_cell):
+            if all(neighbour.coordinates != cell.coordinates for cell in came_from.keys()):
                 queue.append(neighbour)
                 came_from[neighbour] = current_cell
 
