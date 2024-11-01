@@ -1,13 +1,13 @@
 from constants import *
 
 class MazeMap:
-    def __init__(self, rows: int, cols: int):
+    def __init__(self, rows: int, cols: int, outfile: str = "maze.map"):
         self.rows = rows
         self.cols = cols
         self.cell_size = 2 # 2 coordinates
         self.map = self._create_map()
         self.robot_initial_position = (cols*2, rows*2) # Normalize initial robot position
-
+        self.outfile = outfile
 
     def _create_map(self):
         """Creates a 4x larger map representation with the robot starting at the center (0, 0)"""        
@@ -41,7 +41,7 @@ class MazeMap:
         map_representation[14 - 1][28 - 1] = "I"
 
         # Write the final map to a text file
-        with open("maze.map", "w") as file:
+        with open(self.outfile, "w") as file:
             for line in map_representation:
                 file.write("".join(line) + "\n")
                 

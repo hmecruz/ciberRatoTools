@@ -9,8 +9,10 @@ from constants import *
 
 
 class Robot(CRobLinkAngs):
-    def __init__(self, rob_name, rob_id, angles, host):
-        CRobLinkAngs.__init__(self, rob_name, rob_id, angs=[0, 90, -90, 180], host=host)
+    def __init__(self, rob_name, rob_id, angles, host, outfile):
+        CRobLinkAngs.__init__(self, rob_name, rob_id, angs=angles, host=host)
+
+        self.outfile = outfile
         
         self.robot = RobotState()  # Encapsulates robot state
         self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
@@ -146,7 +148,7 @@ class Robot(CRobLinkAngs):
             x, y = self.maze.get_cell_index(cell)
             
             # Write the final map to a text file
-            with open("planning.path", "w") as file:
+            with open(self.outfile, "w") as file:
                 for cell in self.robot.target_cell_path:
                     x, y = self.maze.get_cell_index(cell)
                     x = int(x)

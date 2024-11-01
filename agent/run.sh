@@ -34,18 +34,14 @@ shift $(($OPTIND-1))
 
 case $challenge in
     1)
-        # how to call agent for challenge 1
-        # activate virtual environment, if needed
         python3 ./C1/main.py -h "$host" -p "$pos" -r "$robname"
         ;;
     2)
         # how to call agent for challenge 2
-        java mainC2 -h "$host" -p "$pos" -r "$robname" -f "$outfile"
-        mv your_mapfile $outfile.map             # if needed
+        python3 ./C2/main.py -h "$host" -p "$pos" -r "$robname" -f "$outfile"
         ;;
     3)
         # how to call agent for challenge 3
-        ./mainC3 -h "$host" -p "$pos" -r "$robname" -f "$outfile"
-        mv your_pathfile $outfile.path           # if needed
+        python3 ./C3/main.py -h "$host" -p "$pos" -r "$robname" -f "$outfile"
         ;;
 esac

@@ -63,7 +63,7 @@ class Robot(CRobLinkAngs):
             steering_control_signal = self.steering_pid_controller.compute(steering_error, self.steering_setpoint)
             self.adjust_motors(speed_control_signal, steering_control_signal)
            
-            print("\n----------------------------------------\n")
+            #print("\n----------------------------------------\n")
 
 
     def adjust_motors(self, speed_control_signal, steering_control_signal):

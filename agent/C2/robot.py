@@ -7,11 +7,11 @@ from constants import *
 
 
 class Robot(CRobLinkAngs):
-    def __init__(self, rob_name, rob_id, angles, host):
-        CRobLinkAngs.__init__(self, rob_name, rob_id, angs=[0, 90, -90, 180], host=host)
-        
+    def __init__(self, rob_name, rob_id, angles, host, outfile):
+        CRobLinkAngs.__init__(self, rob_name, rob_id, angs=angles, host=host)
+    
         self.robot = RobotState()  # Encapsulates robot state
-        self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
+        self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS, outfile=outfile)
 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
