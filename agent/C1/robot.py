@@ -8,11 +8,11 @@ MIN_POW = -0.15 #lPow rPow min velocity value
 
 TIME_STEP = 0.005 # Sampling time 50 ms --> 0.005 
 
-# Throttle PID Controller values
+# Throttle PD Controller values
 KP = 0.002 
 KD = 0
 
-# Steering PID Controller Values
+# Steering PD Controller Values
 KPS = 0.098
 KDS = 0.00075 # 0.0008
 
