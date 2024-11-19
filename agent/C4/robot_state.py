@@ -43,7 +43,7 @@ class RobotState:
        
     def initialize(self, robot): 
         robot.readSensors() # Read sensors
-        self.initial_position = (robot.measures.x, robot.measures.y)
+        self.initial_position = (0, 0)
         
         bottom_left = (self.initial_position[0] - 1, self.initial_position[1] - 1)
         self.cell = Cell(bottom_left)
@@ -60,6 +60,9 @@ class RobotState:
         # Read upcoming data
         robot.readSensors()
 
+        if not robot.measures.start:
+            return False
+        
         # Update out, position and direction
         self.movement_model.update_out()
         self.movement_model.update_position()
@@ -75,12 +78,15 @@ class RobotState:
         }
 
         # Print measures
-        print(f"Previous Position: {self.previous_position}")
+        #print(f"Previous Position: {self.previous_position}")
+        print(f"GPS Position: ({robot.measures.x}, {robot.measures.y})")
         print(f"Current Position: {self.current_position}")
         print(f"Target Position: {self.position_setpoint}")
         print(f"Previous Direction: {self.previous_direction}")
         print(f"Current Direction: {self.current_direction}")
         print(f"Target Direction: {self.direction_setpoint}")
+        
+        return True
 
 
     def switch_to_moving(self):
