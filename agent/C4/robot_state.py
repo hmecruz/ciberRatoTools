@@ -1,5 +1,6 @@
 from constants import *
 from maze_map import Cell
+from movement import MovementModel
 
 class RobotState:
     def __init__(self):
