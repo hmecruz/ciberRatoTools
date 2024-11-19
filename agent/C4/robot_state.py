@@ -35,6 +35,9 @@ class RobotState:
         self.first_target_cell = None
         self.second_target_cell = None
         self.target_cell_path = []
+
+        # Movement Model 
+        self.movement_model = MovementModel(self)
         
        
     def initialize(self, robot): 
@@ -56,9 +59,13 @@ class RobotState:
         # Read upcoming data
         robot.readSensors()
 
-        # Update current measures
-        self.current_position = (robot.measures.x, robot.measures.y)
-        self.current_direction = robot.measures.compass if robot.measures.compass != -180 else 180
+        # Update out, position and direction
+        self.movement_model.update_out()
+        self.movement_model.update_position()
+        direction = robot.measures.compass if robot.measures.compass != -180 else 180
+        self.movement_model.update_direction(direction)
+        
+        # Update IR obstacle sensors
         self.ir_sensors = {
             "center": robot.measures.irSensor[0],
             "left": robot.measures.irSensor[1],

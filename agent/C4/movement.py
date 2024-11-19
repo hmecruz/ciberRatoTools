@@ -1,16 +1,22 @@
 import math
 
+from constants import *
 from robot_state import RobotState
+from pd_controller import PDController
 
 class MovementModel:
     def __init__(self, robot_state: RobotState, wheel_distance: float = 1):
         self.robot_state = robot_state
         self.wheel_distance = wheel_distance # Robot diameter (1 in the CiberRato environment)
-
+        
+        self.out_left = 0
+        self.out_right = 0
+        
+        self.input_signal = 0
 
     @staticmethod
-    def compute_out(input_signal, out_t_prev):
-        return (max(min(input_signal, 0.15), -0.15) + out_t_prev) / 2
+    def compute_out(input_signal, out_prev):
+        return (max(min(input_signal, 0.15), -0.15) + out_prev) / 2
     
 
     @staticmethod
@@ -39,19 +45,37 @@ class MovementModel:
         return math.degrees(direction_radians) 
     
 
-    def update_robot_state(self, input_signal, out_left_prev, out_right_prev):
+    def update_out(self):
         # Compute new outputs for the wheels
-        out_left = self.compute_out(input_signal, out_left_prev)
-        out_right = self.compute_out(input_signal, out_right_prev)
+        self.out_left = self.compute_out(self.input_signal, self.out_left)
+        self.out_right = self.compute_out(self.input_signal, self.out_right)
+    
 
-        # Update linear and rotational components
-        linear_vel = self.compute_linear_velocity(out_left, out_right)
+    def update_position(self):
+        # Compute linear component
+        linear_vel = self.compute_linear_velocity(self, self.out_left, self.out_right)
+
+        # Compute position
+        position = self.compute_position(self.robot_state.previous_position, self.robot_state.previous_direction, linear_vel)
+
+        # TODO Apply filter
+
+        # Update position 
+        self.robot_state.current_position = position
+
+
+    def update_direction(self, direction):        
+        # Calculate direction based on formulas
+        """
+        # Compute rotational component
         rotational_vel = self.compute_rotational_velocity(out_left, out_right, self.wheel_distance)
 
-        # Compute position and direction
-        position = self.compute_position(self.robot_state.previous_position, self.robot_state.previous_direction, linear_vel)
+        # Compute direction
         direction = self.compute_direction(self.robot_state.previous_direction, rotational_vel)
-        
-        # Update position and direction
-        self.robot_state.current_position = position
-        self.robot_state.current_direction = direction
+        """
+
+        # TODO Apply filter
+
+        # Update direction
+        self.robot_state.current_direction = direction if direction != -180 else 180 # Normalize direction
+

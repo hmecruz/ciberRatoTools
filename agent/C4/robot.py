@@ -164,6 +164,7 @@ class Robot(CRobLinkAngs):
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
+        self.robot.movement_model.input_signal = steering_correction
         self.driveMotors(-steering_correction, steering_correction)
         #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         return True
@@ -194,6 +195,7 @@ class Robot(CRobLinkAngs):
         if invert_power:
             motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
+        self.robot.movement_model.input_signal = motor_power
         self.driveMotors(motor_power, motor_power)    
         #print(f"Throttle Power: ({motor_power}, {motor_power})")
 
