@@ -32,6 +32,14 @@ class Robot(CRobLinkAngs):
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
             print("----------------------------------------")
 
+
+            #TODO: remove this
+            # if self.robot.current_position[1] >= 2:
+            #     self.driveMotors(0,0)
+            #     quit()
+
+
+
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
                 if self.steering():
                     continue
@@ -158,7 +166,8 @@ class Robot(CRobLinkAngs):
             
     
     def steering(self):
-        if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint:
+        if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
+            (abs(self.robot.previous_direction - self.robot.current_direction) <= 3 and abs(self.robot.direction_setpoint - self.robot.current_direction) <= 1):
             #abs(self.robot.current_direction - self.robot.previous_direction) <= 0:
             self.robot.movement_model.input_signal = 0
             self.driveMotors(0, 0) # Stop motors
@@ -174,8 +183,8 @@ class Robot(CRobLinkAngs):
     def move_forward(self):
         if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
             (
-                abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.05 and \
-                abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.05 and \
+                abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
+                abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
                 Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
             ):
 

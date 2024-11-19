@@ -1,7 +1,7 @@
 import math
 
 from constants import *
-from pd_controller import PDController
+from noise_filter import *
 
 class MovementModel:
     def __init__(self, robot_state, wheel_distance: float = 1):
@@ -12,6 +12,10 @@ class MovementModel:
         self.out_right = 0
         
         self.input_signal = 0
+
+        # Robot filtered compass
+        self.filtered_compass = NoiseFilter(window_size=4)
+
 
     @staticmethod
     def compute_out(input_signal, out_prev):
@@ -56,11 +60,15 @@ class MovementModel:
 
         # Compute position
         position = self.compute_position(self.robot_state.current_position, self.robot_state.current_direction, linear_vel)
+        
 
         # TODO Apply filter
 
         # Update position 
-        self.robot_state.current_position = position
+        if closest_direction(self.robot_state.current_direction) in [NORTH,SOUTH]:
+            self.robot_state.current_position = (self.robot_state.current_position[0], position[1])
+        else:
+            self.robot_state.current_position = (position[0],self.robot_state.current_position[1])
 
 
     def update_direction(self, direction):        
@@ -74,7 +82,9 @@ class MovementModel:
         """
 
         # TODO Apply filter
+        filtered_compass = self.filtered_compass.update(direction)
+        
 
         # Update direction
-        self.robot_state.current_direction = direction if direction != -180 else 180 # Normalize direction
+        self.robot_state.current_direction = filtered_compass if filtered_compass != -180 else 180 # Normalize direction
 

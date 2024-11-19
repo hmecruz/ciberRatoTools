@@ -1,6 +1,7 @@
 from constants import *
 from maze_map import Cell
 from movement import MovementModel
+from noise_filter import *
 
 
 class RobotState:
@@ -19,6 +20,8 @@ class RobotState:
 
         # Robot IR Sensors
         self.ir_sensors = None # Y
+
+        #TODO: filtered ground
 
         # Robot mode
         self.steering_mode = True 
