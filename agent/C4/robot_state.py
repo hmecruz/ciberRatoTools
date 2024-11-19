@@ -2,19 +2,20 @@ from constants import *
 from maze_map import Cell
 from movement import MovementModel
 
+
 class RobotState:
     def __init__(self):
 
         # Robot Position
-        self.initial_position = None  # Y
-        self.previous_position = None # Y
-        self.current_position = None  # Y
-        self.position_setpoint = None # N
+        self.initial_position = None 
+        self.previous_position = None 
+        self.current_position = (0, 0)  
+        self.position_setpoint = None 
 
         # Robot direction 
-        self.previous_direction = None # Y
-        self.current_direction = None  # Y
-        self.direction_setpoint = None # N
+        self.previous_direction = None
+        self.current_direction = 0  
+        self.direction_setpoint = None 
 
         # Robot IR Sensors
         self.ir_sensors = None # Y
@@ -24,8 +25,8 @@ class RobotState:
         self.moving_mode = False
        
         # Cell state
-        self.cell = None          # Y
-        self.cell_setpoint = None # Y
+        self.cell = None          
+        self.cell_setpoint = None 
         self.cell_index = (0, 0)
         
         # Pathfinding
@@ -74,12 +75,12 @@ class RobotState:
         }
 
         # Print measures
-        #print(f"Previous Position: {self.previous_position}")
-        #print(f"Current Position: {self.current_position}")
-        #print(f"Target Position: {self.position_setpoint}")
-        #print(f"Previous Direction: {self.previous_direction}")
-        #print(f"Current Direction: {self.current_direction}")
-        #print(f"Target Direction: {self.direction_setpoint}")
+        print(f"Previous Position: {self.previous_position}")
+        print(f"Current Position: {self.current_position}")
+        print(f"Target Position: {self.position_setpoint}")
+        print(f"Previous Direction: {self.previous_direction}")
+        print(f"Current Direction: {self.current_direction}")
+        print(f"Target Direction: {self.direction_setpoint}")
 
 
     def switch_to_moving(self):
@@ -119,5 +120,5 @@ class RobotState:
                 "back": MOVE_NORTH,
             },
         }
-        return sensor_map.get(self.current_direction, {}).get(sensor_name)
+        return sensor_map.get(closest_direction(self.current_direction), {}).get(sensor_name)
     

@@ -1,11 +1,10 @@
 import math
 
 from constants import *
-from robot_state import RobotState
 from pd_controller import PDController
 
 class MovementModel:
-    def __init__(self, robot_state: RobotState, wheel_distance: float = 1):
+    def __init__(self, robot_state, wheel_distance: float = 1):
         self.robot_state = robot_state
         self.wheel_distance = wheel_distance # Robot diameter (1 in the CiberRato environment)
         
@@ -53,10 +52,10 @@ class MovementModel:
 
     def update_position(self):
         # Compute linear component
-        linear_vel = self.compute_linear_velocity(self, self.out_left, self.out_right)
+        linear_vel = self.compute_linear_velocity(self.out_left, self.out_right)
 
         # Compute position
-        position = self.compute_position(self.robot_state.previous_position, self.robot_state.previous_direction, linear_vel)
+        position = self.compute_position(self.robot_state.current_position, self.robot_state.current_direction, linear_vel)
 
         # TODO Apply filter
 
@@ -71,7 +70,7 @@ class MovementModel:
         rotational_vel = self.compute_rotational_velocity(out_left, out_right, self.wheel_distance)
 
         # Compute direction
-        direction = self.compute_direction(self.robot_state.previous_direction, rotational_vel)
+        direction = self.compute_direction(self.robot_state.current_direction, rotational_vel)
         """
 
         # TODO Apply filter
