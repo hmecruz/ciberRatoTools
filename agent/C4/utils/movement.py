@@ -2,6 +2,7 @@ import math
 
 from constants import *
 from utils.noise_filter import *
+from utils.KalmanFilter import *
 
 
 class MovementModel:
@@ -14,12 +15,16 @@ class MovementModel:
         self.out_left = 0
         self.out_right = 0
 
-        self.input_signal = 0
+        self.input_signal_left = 0
+        self.input_signal_right = 0
 
         # Robot filtered compass
         # self.filtered_compass = NoiseFilter(window_size=1)
         # self.filtered_x = NoiseFilter(window_size=2)
         # self.filtered_y = NoiseFilter(window_size=2)
+
+        # measurement_variance = (2**2/360**2) -> covariance
+        self.angle_kalman_filter = AngleKalmanFilter(0, 0.1)
 
     @staticmethod
     def compute_out(input_signal, out_prev):
@@ -48,13 +53,23 @@ class MovementModel:
         prev_direction_radians = math.radians(
             prev_direction_degrees
         )  # Convert degrees to radians
+
+        # TODO: [-PI,PI]
+
+
+
         direction_radians = prev_direction_radians + rotational_vel
-        return math.degrees(direction_radians)
+
+        direction =  math.degrees(direction_radians)
+
+        # TODO: [-180,180]
+
+        return direction
 
     def update_out(self):
         # Compute new outputs for the wheels
-        self.out_left = self.compute_out(self.input_signal, self.out_left)
-        self.out_right = self.compute_out(self.input_signal, self.out_right)
+        self.out_left = self.compute_out(self.input_signal_left, self.out_left)
+        self.out_right = self.compute_out(self.input_signal_right, self.out_right)
 
     def update_position(self):
         # Compute linear component
@@ -81,20 +96,42 @@ class MovementModel:
 
         self.robot_state.current_position = position
 
-    def update_direction(self, direction):
+    def update_direction(self, compass):
         # Calculate direction based on formulas
-        """
+
+        
         # Compute rotational component
-        rotational_vel = self.compute_rotational_velocity(out_left, out_right, self.wheel_distance)
+        rotational_vel = self.compute_rotational_velocity(
+            self.out_left, self.out_right, self.wheel_distance
+        )
 
         # Compute direction
-        direction = self.compute_direction(self.robot_state.current_direction, rotational_vel)
-        """
+        compass_movement_model = self.compute_direction(
+            self.robot_state.current_direction, rotational_vel
+        )
 
+
+        
+        
         # TODO Apply filter
-        #filtered_compass = self.filtered_compass.update(direction)
+        self.angle_kalman_filter.update(compass)
 
+        if not self.angle_kalman_filter.firstTime:
+            self.angle_kalman_filter.predict(compass_movement_model)
+        else:
+            self.angle_kalman_filter.firstTime = False
+
+        filtered_compass,_ = self.angle_kalman_filter.get_estimate()
         # Update direction
         self.robot_state.current_direction = (
-            direction if direction != -180 else 180
+            filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
+        
+        print(f"MM Direction: {compass_movement_model}")
+        print(f"Noise Direction: {compass}")
+        print(f"Filtered Direction: {filtered_compass}")
+
+       
+
+        
+   

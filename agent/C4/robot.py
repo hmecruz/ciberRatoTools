@@ -28,19 +28,45 @@ filtered = {
 }
 
 def signal_handler(sig, frame):
-    for sensor in noise.keys():
-        plt.figure(figsize=(10, 6))
-        plt.plot(noise[sensor][-1000:], marker='o', linestyle='-', color='blue', label="noise")
-        plt.plot(filtered[sensor][-1000:], marker='s', linestyle='--', color='red', label="filtered")
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(noise["x"][-1000:], marker='o', linestyle='-', color='blue', label="MM.x")
+    plt.plot(filtered["x"][-1000:], marker='s', linestyle='--', color='red', label="GPS.x")
         # Adding labels and title
-        plt.xlabel("Cycles")
-        plt.ylabel("Values")
-        plt.title("Plot of Data Array")
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(f"plot/noise_{sensor}.png")
-        plt.show()
+    plt.xlabel("Cycles")
+    plt.ylabel("x")
+    plt.title("Plot of X position")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(f"plot/x_position.png")
+    #plt.show()
 
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(noise["y"][-1000:], marker='o', linestyle='-', color='blue', label="MM.y")
+    plt.plot(filtered["y"][-1000:], marker='s', linestyle='--', color='red', label="GPS.y")
+        # Adding labels and title
+    plt.xlabel("Cycles")
+    plt.ylabel("y")
+    plt.title("Plot of y position")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(f"plot/y_position.png")
+    #plt.show()
+
+    plt.close()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(noise["compass"][-1000:], marker='o', linestyle='-', color='blue', label="Noise Compass")
+    plt.plot(filtered["compass"][-1000:], marker='s', linestyle='--', color='red', label="MM Compass")
+        # Adding labels and title
+    plt.xlabel("Cycles")
+    plt.ylabel("compass")
+    plt.title("Plot of compass")
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(f"plot/compass.png")
+    plt.show()
 
 
     
@@ -226,12 +252,15 @@ class Robot(CRobLinkAngs):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
             (abs(self.robot.previous_direction - self.robot.current_direction) <= 3 and abs(self.robot.direction_setpoint - self.robot.current_direction) <= 1):
             #abs(self.robot.current_direction - self.robot.previous_direction) <= 0:
-            self.robot.movement_model.input_signal = 0
+            self.robot.movement_model.input_signal_left = 0
+            self.robot.movement_model.input_signal_right  = 0
+             
             self.driveMotors(0, 0) # Stop motors
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
-        self.robot.movement_model.input_signal = steering_correction
+        self.robot.movement_model.input_signal_left = -steering_correction
+        self.robot.movement_model.input_signal_right = steering_correction
         self.driveMotors(-steering_correction, steering_correction)
         #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
         return True
@@ -245,7 +274,8 @@ class Robot(CRobLinkAngs):
                 Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
             ):
 
-            self.robot.movement_model.input_signal = 0
+            self.robot.movement_model.input_signal_left = 0
+            self.robot.movement_model.input_signal_right = 0
             self.driveMotors(0, 0) # Stop Motors
             return False
                 
@@ -264,7 +294,8 @@ class Robot(CRobLinkAngs):
         if invert_power:
             motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
-        self.robot.movement_model.input_signal = motor_power
+        self.robot.movement_model.input_signal_left = motor_power
+        self.robot.movement_model.input_signal_right = motor_power
         self.driveMotors(motor_power, motor_power)    
         #print(f"Throttle Power: ({motor_power}, {motor_power})")
 

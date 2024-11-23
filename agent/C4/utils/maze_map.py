@@ -1,147 +1,5 @@
 from constants import *
 
-class MazeMap:
-    def __init__(self, rows: int, cols: int):
-        self.rows = rows
-        self.cols = cols
-        self.cell_size = 2 # 2 coordinates
-        self.map = self._create_map()
-        
-    def _create_map(self):
-        """Creates a 4x larger map representation with the robot starting at the center (0, 0)"""        
-        maze_map = {}
-        for row in range(0, self.rows * self.cell_size * 2  - 1, 2):
-            for col in range(0, self.cols * self.cell_size * 2 - 1, 2): 
-                maze_map[(col, row)] = None # col --> x | row --> y
-        return maze_map
-    
-
-    def add_cell_map(self, cell, index: tuple):
-        """Add cell to map"""
-        self.map[(index)] = cell
-        cell.mark_visited()
-
-    
-    def get_cell(self, coordinates: tuple):
-        x, y = coordinates
-        # Loop through all cells and find the one containing the given coordinates
-        for cell in self.map.values():
-            if cell is None: continue
-            bl_x, bl_y = cell.coordinates[0]
-            tr_x, tr_y = cell.coordinates[1]
-            # Check if coordinates are within the bounds of this cell
-            if bl_x <= x <= tr_x and bl_y <= y <= tr_y:
-                return cell
-        return None
-    
-    def get_cell_index(self, cell):
-        for key, value in self.map.items():
-            if value is None: continue
-            if cell == value:
-                return key
-        return None
-
-    def get_visited_cells(self):
-        """Returns a list of all visited cells."""
-        visited_cells = [cell for cell in self.map.values() if cell and cell.is_visited()]
-        return visited_cells
-    
-    def has_neighbours_to_explore(self, cell):
-        """Check if the given cell has neighbours to explore."""
-        cell_middle_position = cell.get_middle_position() 
-        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
-        
-        for vector in vectors:
-            neighbour_coords = (
-                cell_middle_position[0] + vector[0],
-                cell_middle_position[1] + vector[1]
-            )
-            if not self.get_cell(neighbour_coords): # If neighbour cell not in map
-                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
-                    return True
-        return False
-    
-    def get_neighbours(self, cell):
-        """Return a list of known neighbour cells"""
-        neighbour_cells = []
-
-        cell_middle_position = cell.get_middle_position() 
-        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
-        
-        for vector in vectors:
-            neighbour_coords = (
-                cell_middle_position[0] + vector[0],
-                cell_middle_position[1] + vector[1]
-            )
-
-            neighbour_cell = self.get_cell(neighbour_coords)
-            if neighbour_cell is not None: 
-                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
-                    neighbour_cells.append(neighbour_cell)
-        
-        return neighbour_cells
-    
-
-    def get_all_neighbours(self, cell):
-        """
-        Return a list of unkown and known neighbour cells
-        Unknown cells are treated as passages
-        Unknown cells register wall info from adjacent known cells
-        """
-        neighbour_cells = []
-
-        cell_middle_position = cell.get_middle_position() 
-        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
-        
-        for vector in vectors:
-            neighbour_coords = (
-                cell_middle_position[0] + vector[0],
-                cell_middle_position[1] + vector[1]
-            )
-
-            neighbour_cell = self.get_cell(neighbour_coords)
-            if neighbour_cell is not None: 
-                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
-                    neighbour_cells.append(neighbour_cell)
-            else: 
-                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
-                    fake_cell = Cell((neighbour_coords[0] - 1, neighbour_coords[1] - 1)) # Cell Bottom Left 
-                    fake_cell_neighbours = self.get_neighbours(fake_cell)
-                    for neighbour in fake_cell_neighbours:
-                        # Mark fake_cell walls based on known cells
-                        vector = (
-                        neighbour.bl_x - fake_cell.bl_x,
-                        neighbour.bl_y - fake_cell.bl_y
-                        )
-                        if vector == MOVE_NORTH and neighbour.bottom_wall:
-                            fake_cell.top_wall = True
-                        elif vector == MOVE_SOUTH and neighbour.top_wall:
-                            fake_cell.bottom_wall = True
-                        elif vector == MOVE_WEST and neighbour.right_wall:
-                            fake_cell.left_wall = True
-                        elif vector == MOVE_EAST and neighbour.left_wall:
-                            fake_cell.right_wall = True
-
-                    neighbour_cells.append(fake_cell)
-
-        return neighbour_cells
-    
-
-    def mark_cell_visited(self, coordinates: tuple):
-        """Marks the cell at the given coordinates as visited."""
-        cell = self.get_cell(coordinates)
-        if cell:
-            cell.mark_visited()
-
-
-    def is_cell_visited(self, coordinates: tuple):
-        """Checks if the cell at the given coordinates is visited."""
-        cell = self.get_cell(coordinates)
-        if cell:
-            return cell.is_visited()
-        return False
-    
-
 class Cell:
     def __init__(self, bottom_left: tuple):
         self.bl_x, self.bl_y = bottom_left
@@ -222,3 +80,148 @@ class Cell:
         x, y = position
         (bl_x, bl_y), (tr_x, tr_y) = cell.coordinates
         return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)
+
+
+
+class MazeMap:
+    def __init__(self, rows: int, cols: int):
+        self.rows = rows
+        self.cols = cols
+        self.cell_size = 2 # 2 coordinates
+        self.map = self._create_map()
+        
+    def _create_map(self):
+        """Creates a 4x larger map representation with the robot starting at the center (0, 0)"""        
+        maze_map = {}
+        for row in range(0, self.rows * self.cell_size * 2  - 1, 2):
+            for col in range(0, self.cols * self.cell_size * 2 - 1, 2): 
+                maze_map[(col, row)] = None # col --> x | row --> y
+        return maze_map
+    
+
+    def add_cell_map(self, cell, index: tuple):
+        """Add cell to map"""
+        self.map[(index)] = cell
+        cell.mark_visited()
+
+    
+    def get_cell(self, coordinates: tuple):
+        x, y = coordinates
+        # Loop through all cells and find the one containing the given coordinates
+        for cell in self.map.values():
+            if cell is None: continue
+            bl_x, bl_y = cell.coordinates[0]
+            tr_x, tr_y = cell.coordinates[1]
+            # Check if coordinates are within the bounds of this cell
+            if bl_x <= x <= tr_x and bl_y <= y <= tr_y:
+                return cell
+        return None
+    
+    def get_cell_index(self, cell:Cell):
+        for key, value in self.map.items():
+            if value is None: continue
+            if cell == value:
+                return key
+        return None
+
+    def get_visited_cells(self):
+        """Returns a list of all visited cells."""
+        visited_cells = [cell for cell in self.map.values() if cell and cell.is_visited()]
+        return visited_cells
+    
+    def has_neighbours_to_explore(self, cell:Cell):
+        """Check if the given cell has neighbours to explore."""
+        cell_middle_position = cell.get_middle_position() 
+        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
+        
+        for vector in vectors:
+            neighbour_coords = (
+                cell_middle_position[0] + vector[0],
+                cell_middle_position[1] + vector[1]
+            )
+            if not self.get_cell(neighbour_coords): # If neighbour cell not in map
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    return True
+        return False
+    
+    def get_neighbours(self, cell:Cell):
+        """Return a list of known neighbour cells"""
+        neighbour_cells = []
+
+        cell_middle_position = cell.get_middle_position() 
+        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
+        
+        for vector in vectors:
+            neighbour_coords = (
+                cell_middle_position[0] + vector[0],
+                cell_middle_position[1] + vector[1]
+            )
+
+            neighbour_cell = self.get_cell(neighbour_coords)
+            if neighbour_cell is not None: 
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    neighbour_cells.append(neighbour_cell)
+        
+        return neighbour_cells
+    
+
+    def get_all_neighbours(self, cell:Cell):
+        """
+        Return a list of unkown and known neighbour cells
+        Unknown cells are treated as passages
+        Unknown cells register wall info from adjacent known cells
+        """
+        neighbour_cells = []
+
+        cell_middle_position = cell.get_middle_position() 
+        vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
+        
+        for vector in vectors:
+            neighbour_coords = (
+                cell_middle_position[0] + vector[0],
+                cell_middle_position[1] + vector[1]
+            )
+
+            neighbour_cell = self.get_cell(neighbour_coords)
+            if neighbour_cell is not None: 
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    neighbour_cells.append(neighbour_cell)
+            else: 
+                if getattr(cell, cell.vector_wall(vector)) == False: # If no wall
+                    fake_cell = Cell((neighbour_coords[0] - 1, neighbour_coords[1] - 1)) # Cell Bottom Left 
+                    fake_cell_neighbours = self.get_neighbours(fake_cell)
+                    for neighbour in fake_cell_neighbours:
+                        # Mark fake_cell walls based on known cells
+                        vector = (
+                        neighbour.bl_x - fake_cell.bl_x,
+                        neighbour.bl_y - fake_cell.bl_y
+                        )
+                        if vector == MOVE_NORTH and neighbour.bottom_wall:
+                            fake_cell.top_wall = True
+                        elif vector == MOVE_SOUTH and neighbour.top_wall:
+                            fake_cell.bottom_wall = True
+                        elif vector == MOVE_WEST and neighbour.right_wall:
+                            fake_cell.left_wall = True
+                        elif vector == MOVE_EAST and neighbour.left_wall:
+                            fake_cell.right_wall = True
+
+                    neighbour_cells.append(fake_cell)
+
+        return neighbour_cells
+    
+
+    def mark_cell_visited(self, coordinates: tuple):
+        """Marks the cell at the given coordinates as visited."""
+        cell = self.get_cell(coordinates)
+        if cell:
+            cell.mark_visited()
+
+
+    def is_cell_visited(self, coordinates: tuple):
+        """Checks if the cell at the given coordinates is visited."""
+        cell = self.get_cell(coordinates)
+        if cell:
+            return cell.is_visited()
+        return False
+    
+

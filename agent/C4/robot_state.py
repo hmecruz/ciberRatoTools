@@ -82,12 +82,14 @@ class RobotState:
 
         # Print measures
         #print(f"Previous Position: {self.previous_position}")
-        print(f"GPS Position: ({robot.measures.x}, {robot.measures.y})")
-        print(f"Current Position: {self.current_position}")
-        print(f"Target Position: {self.position_setpoint}")
-        print(f"Previous Direction: {self.previous_direction}")
-        print(f"Current Direction: {self.current_direction}")
-        print(f"Target Direction: {self.direction_setpoint}")
+        # print(f"GPS Position: ({robot.measures.x}, {robot.measures.y})")
+        # print(f"Current Position: {self.current_position}")
+        # print(f"Target Position: {self.position_setpoint}")
+        # print(f"Previous Direction: {self.previous_direction}")
+        #print(f"Current Direction: {self.current_direction}")
+        # print(f"Target Direction: {self.direction_setpoint}")
+
+        self.current_position = (robot.measures.x - robot.realGPS[0], robot.measures.y - robot.realGPS[1])
         
         return True
 
