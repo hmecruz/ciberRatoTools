@@ -8,6 +8,51 @@ from bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 
 
+import signal
+import sys
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('qt5Agg')
+
+
+noise = {
+    "x": [],
+    "y": [],
+    "compass": []
+}
+
+filtered = {
+    "x": [],
+    "y": [],
+    "compass": []
+}
+
+def signal_handler(sig, frame):
+    for sensor in noise.keys():
+        plt.figure(figsize=(10, 6))
+        plt.plot(noise[sensor][-1000:], marker='o', linestyle='-', color='blue', label="noise")
+        plt.plot(filtered[sensor][-1000:], marker='s', linestyle='--', color='red', label="filtered")
+        # Adding labels and title
+        plt.xlabel("Cycles")
+        plt.ylabel("Values")
+        plt.title("Plot of Data Array")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"plot/noise_{sensor}.png")
+        plt.show()
+
+
+
+    
+    # Perform any cleanup here
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
+#############################
+
+
+
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host, outfile):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angs=angles, host=host)
@@ -27,6 +72,10 @@ class Robot(CRobLinkAngs):
             quit()
 
         self.robot.initialize(self)
+
+        # TODO: remove this
+        self.realGPS = (self.measures.x,self.measures.y)
+
         while True:
             # TODO: add a false so the loop doesnt continue
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
@@ -37,6 +86,14 @@ class Robot(CRobLinkAngs):
             # if self.robot.current_position[1] >= 2:
             #     self.driveMotors(0,0)
             #     quit()
+
+            # TODO: remove this
+            noise["x"].append(self.realGPS[0] + self.robot.current_position[0])
+            noise["y"].append(self.realGPS[1] + self.robot.current_position[1])
+            noise["compass"].append(self.measures.compass)
+            filtered["x"].append(self.measures.x)
+            filtered["y"].append(self.measures.y)
+            filtered["compass"].append(self.robot.current_direction)
 
 
 
@@ -123,7 +180,7 @@ class Robot(CRobLinkAngs):
         )
 
         self.robot.position_setpoint = next_position 
-        self.robot.direction_setpoint = vector_to_direction(move_vector)    
+        self.robot.direction_setpoint = vector_to_direction(move_vector)
                 
 
     def compute_target_cell_path(self):    

@@ -28,7 +28,12 @@ class NoiseFilter:
             return current_value
             
 
-        filtered = int(lpf(current_value, self.values[-1]))
+        filtered = lpf(current_value, self.values[-1])
         self.values.append(filtered)
 
         return filtered
+
+    # def update(self,current_value):
+    #     self.values.append(current_value)
+    #     filtered_value = sum(self.values) / len(self.values)
+    #     return round(filtered_value,1)
