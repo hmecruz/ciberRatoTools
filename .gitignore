@@ -10,3 +10,5 @@ ui_*.h
 *.jar
 build
 venv/
+agent/*/__pycache__
+agent/*/utils/__pycache__

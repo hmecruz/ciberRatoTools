@@ -1,7 +1,7 @@
 import math
 
 from constants import *
-from noise_filter import *
+from utils.noise_filter import *
 
 
 class MovementModel:
@@ -17,9 +17,9 @@ class MovementModel:
         self.input_signal = 0
 
         # Robot filtered compass
-        self.filtered_compass = NoiseFilter(window_size=1)
-        self.filtered_x = NoiseFilter(window_size=2)
-        self.filtered_y = NoiseFilter(window_size=2)
+        # self.filtered_compass = NoiseFilter(window_size=1)
+        # self.filtered_x = NoiseFilter(window_size=2)
+        # self.filtered_y = NoiseFilter(window_size=2)
 
     @staticmethod
     def compute_out(input_signal, out_prev):
@@ -68,10 +68,10 @@ class MovementModel:
         )
 
         # TODO Apply filter
-        filtered_position = (
-            self.filtered_x.update(position[0]),
-            self.filtered_y.update(position[1]),
-        )
+        # filtered_position = (
+        #     self.filtered_x.update(position[0]),
+        #     self.filtered_y.update(position[1]),
+        # )
 
         # TODO: Remove this
         # if closest_direction(self.robot_state.current_direction) in [NORTH,SOUTH]:
@@ -92,9 +92,9 @@ class MovementModel:
         """
 
         # TODO Apply filter
-        filtered_compass = self.filtered_compass.update(direction)
+        #filtered_compass = self.filtered_compass.update(direction)
 
         # Update direction
         self.robot_state.current_direction = (
-            filtered_compass if filtered_compass != -180 else 180
+            direction if direction != -180 else 180
         )  # Normalize direction

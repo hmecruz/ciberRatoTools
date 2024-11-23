@@ -1,7 +1,7 @@
 from constants import *
-from maze_map import Cell
-from movement import MovementModel
-from noise_filter import *
+from utils.maze_map import Cell
+from utils.movement import MovementModel
+from utils.noise_filter import *
 
 
 class RobotState:

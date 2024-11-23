@@ -2,9 +2,9 @@ import sys
 
 from croblink import *
 from robot_state import RobotState
-from maze_map import MazeMap, Cell
-from pd_controller import PDController
-from bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
+from utils.maze_map import MazeMap, Cell
+from utils.pd_controller import PDController
+from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 
 

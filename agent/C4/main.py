@@ -1,6 +1,6 @@
 import sys
 from robot import Robot
-from map import Map
+from utils.map import Map
 
 rob_name = "pClient1"
 host = "localhost"
