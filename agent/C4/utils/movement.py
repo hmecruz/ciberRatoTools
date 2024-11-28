@@ -4,6 +4,11 @@ from constants import *
 from utils.noise_filter import *
 from utils.KalmanFilter import *
 
+def normalize_angle( angle):
+    """Ensure angle is between -180 and 180.""" 
+    normalized_angle = (angle + 180) % 360 - 180
+    return normalized_angle if normalized_angle != -180 else 180
+
 
 class MovementModel:
     def __init__(self, robot_state, wheel_distance: float = 1):
@@ -24,7 +29,8 @@ class MovementModel:
         # self.filtered_y = NoiseFilter(window_size=2)
 
         # measurement_variance = (2**2/360**2) -> covariance
-        self.angle_kalman_filter = AngleKalmanFilter(0, 0.1)
+        #self.angle_kalman_filter = AngleKalmanFilter(0, 0.1)
+        self.angle_kalman_filter = AngleKalmanFilter()
 
     @staticmethod
     def compute_out(input_signal, out_prev):
@@ -50,6 +56,15 @@ class MovementModel:
 
     @staticmethod
     def compute_direction(prev_direction_degrees, rotational_vel):
+
+        # if prev_direction_degrees <= -90 or prev_direction_degrees >= 90:
+        #     print(f"Prev Direction: {prev_direction_degrees}\nRotational Vel: {rotational_vel}")
+        
+        # if prev_direction_degrees < 0:
+        #     prev_direction_degrees = 360 + prev_direction_degrees
+
+        # prev_direction_degrees = normalize_angle(prev_direction_degrees)
+
         prev_direction_radians = math.radians(
             prev_direction_degrees
         )  # Convert degrees to radians
@@ -57,10 +72,11 @@ class MovementModel:
         # TODO: [-PI,PI]
 
 
-
         direction_radians = prev_direction_radians + rotational_vel
 
         direction =  math.degrees(direction_radians)
+
+        #direction = normalize_angle(direction)
 
         # TODO: [-180,180]
 
@@ -121,7 +137,11 @@ class MovementModel:
         else:
             self.angle_kalman_filter.firstTime = False
 
-        filtered_compass,_ = self.angle_kalman_filter.get_estimate()
+        filtered_compass,_ = self.angle_kalman_filter.get_estimate()[0]
+        filtered_compass = int(filtered_compass)
+
+        print(f"Filtered Compass: {filtered_compass}")
+
         # Update direction
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180
@@ -133,5 +153,5 @@ class MovementModel:
 
        
 
-        
+
    

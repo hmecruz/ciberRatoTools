@@ -54,8 +54,6 @@ def signal_handler(sig, frame):
     plt.savefig(f"plot/y_position.png")
     #plt.show()
 
-    plt.close()
-
     plt.figure(figsize=(10, 6))
     plt.plot(noise["compass"][-1000:], marker='o', linestyle='-', color='blue', label="Noise Compass")
     plt.plot(filtered["compass"][-1000:], marker='s', linestyle='--', color='red', label="MM Compass")
