@@ -89,7 +89,8 @@ class RobotState:
         #print(f"Current Direction: {self.current_direction}")
         # print(f"Target Direction: {self.direction_setpoint}")
 
-        self.current_position = (robot.measures.x - robot.realGPS[0], robot.measures.y - robot.realGPS[1])
+        # TODO: remove this
+        #self.current_position = (robot.measures.x - robot.realGPS[0], robot.measures.y - robot.realGPS[1])
         
         return True
 

@@ -140,8 +140,6 @@ class MovementModel:
         filtered_compass,_ = self.angle_kalman_filter.get_estimate()[0]
         filtered_compass = int(filtered_compass)
 
-        print(f"Filtered Compass: {filtered_compass}")
-
         # Update direction
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180

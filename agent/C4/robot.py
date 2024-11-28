@@ -105,12 +105,6 @@ class Robot(CRobLinkAngs):
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
             print("----------------------------------------")
 
-
-            #TODO: remove this
-            # if self.robot.current_position[1] >= 2:
-            #     self.driveMotors(0,0)
-            #     quit()
-
             # TODO: remove this
             noise["x"].append(self.realGPS[0] + self.robot.current_position[0])
             noise["y"].append(self.realGPS[1] + self.robot.current_position[1])
