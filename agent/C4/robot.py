@@ -120,23 +120,31 @@ class Robot(CRobLinkAngs):
                 if self.steering():
                     continue
                 self.robot.switch_to_moving()
-
             if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
                 if self.move_forward(): 
                     continue
                 self.robot.switch_to_steering()
                 if self.steering(): continue # After finish moving forward adjust direction
             if self.robot.recalibration_mode == True:
+                print("Recalibrar")
                 if self.recalibration():
                     continue
+                print("Terminei a recalibração")
                 self.robot.switch_to_steering()
+                self.robot.recalibration_complete = True
                 if self.steering(): continue
 
             # Robot reach new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
-            self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
-
+            sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
+            # Activate recalibration if wall in front
+            if self.robot.recalibration_complete == False: # If recalibration has not been done
+                front_wall = sensor_map.get("center")
+                if getattr(self.robot.cell, front_wall) == True: # If wall in front 
+                    self.robot.switch_to_recalibration() 
+                    continue
+            self.robot.recalibration_complete = False # Reset recalibration for next move
 
 
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
@@ -313,16 +321,14 @@ class Robot(CRobLinkAngs):
             return False
 
         
-        self.move_to_recalibration_position(self.robot.ir_sensors["center"], CENTER_SENSOR_SETPOINT)
-
-        return True
-
-    def move_to_recalibration_position(self, current_val, target_val):
-        motor_power = self.recalibration_pd_controller.compute(current_val, target_val)
+        motor_power = self.recalibration_pd_controller.compute(self.robot.ir_sensors["center"], CENTER_SENSOR_SETPOINT)
 
         self.robot.movement_model.input_signal_left = motor_power
         self.robot.movement_model.input_signal_right = motor_power
-        self.driveMotors(motor_power, motor_power)    
+        self.driveMotors(motor_power, motor_power)  
+
+        return True
+    
 
     def create_cell_from_vector(self, vector):
         """Create a cell based on the robot's next position vector and current cell."""

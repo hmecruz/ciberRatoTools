@@ -28,7 +28,7 @@ class Cell:
         return self.visited
     
 
-    def mark_walls(self, ir_sensors, current_direction):
+    def mark_walls(self, ir_sensors, current_direction) -> dict[float, dict[str, str]]:
         # Define the sensor directions for each heading (NORTH, SOUTH, EAST, WEST)
         sensor_map = {
             NORTH: {
@@ -62,9 +62,10 @@ class Cell:
                 wall_to_mark = sensor_map[current_direction].get(sensor_name)
                 if wall_to_mark:
                     setattr(self, wall_to_mark, True)  # Mark the wall as True
+        
 
-        # TODO: might need to return tha walls that were detected to activate the recalibration mode
-    
+        return sensor_map[current_direction]
+
     
     def vector_wall(self, vector):
         """Detects if a cell has a wall based on a vector"""

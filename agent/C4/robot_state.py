@@ -27,6 +27,7 @@ class RobotState:
         self.steering_mode = True 
         self.moving_mode = False
         self.recalibration_mode = False
+        self.recalibration_complete = False
        
         # Cell state
         self.cell = None          
@@ -99,11 +100,17 @@ class RobotState:
     def switch_to_moving(self):
         self.steering_mode = False
         self.moving_mode = True
-    
+        self.recalibration_mode = False    
 
     def switch_to_steering(self):
         self.moving_mode = False
         self.steering_mode = True
+        self.recalibration_mode = False
+
+    def switch_to_recalibration(self):
+        self.moving_mode = False
+        self.steering_mode = False
+        self.recalibration_mode = True
     
 
     def sensor_vector_map(self, sensor_name):
