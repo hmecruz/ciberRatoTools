@@ -31,7 +31,7 @@ KPS = 0.02
 KDS = 0.00003 
 
 # Recalibration PD Controller Values
-KPR = 0.035 
+KPR = 0.025 
 KDR = 0 
 
 # Maze Size

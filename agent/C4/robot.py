@@ -64,7 +64,7 @@ def signal_handler(sig, frame):
     plt.legend()
     plt.grid(True)
     plt.savefig(f"plot/compass.png")
-    plt.show()
+    #plt.show()
 
 
     
@@ -146,7 +146,10 @@ class Robot(CRobLinkAngs):
                 if getattr(self.robot.cell, front_wall) == True: # If wall in front 
                     self.robot.switch_to_recalibration() 
                     continue
+
             self.robot.recalibration_complete = False # Reset recalibration for next move
+
+            # Recalibrate 
 
 
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
@@ -265,7 +268,7 @@ class Robot(CRobLinkAngs):
             self.robot.movement_model.input_signal_left = 0
             self.robot.movement_model.input_signal_right  = 0
              
-            self.driveMotors(0, 0) # Stop motors
+            self.driveMotors(0, 0) if self.robot.recalibration_complete == False else self.driveMotors(-0.1, -0.1) # Stop motors
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
@@ -281,9 +284,7 @@ class Robot(CRobLinkAngs):
             (
                 abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
                 abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
-                #Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
-                abs(self.robot.current_position[0] - self.robot.position_setpoint[0]) < 0.15 and \
-                abs(self.robot.current_position[1] - self.robot.position_setpoint[1]) < 0.15 
+                Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint) 
             ):
 
             self.robot.movement_model.input_signal_left = 0
