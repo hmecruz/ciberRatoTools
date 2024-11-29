@@ -26,6 +26,7 @@ class RobotState:
         # Robot mode
         self.steering_mode = True 
         self.moving_mode = False
+        self.recalibration_mode = False
        
         # Cell state
         self.cell = None          

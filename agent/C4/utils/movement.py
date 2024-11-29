@@ -126,18 +126,27 @@ class MovementModel:
             self.robot_state.current_direction, rotational_vel
         )
 
+        # if compass < 0:
+        #     compass = 360 + compass
+        
 
-        
-        
-        # TODO Apply filter
-        self.angle_kalman_filter.update(compass)
 
         if not self.angle_kalman_filter.firstTime:
+            if compass_movement_model < -160:
+                compass_movement_model = compass_movement_model + 360
+
             self.angle_kalman_filter.predict(compass_movement_model)
         else:
             self.angle_kalman_filter.firstTime = False
 
+        if compass < -160:
+                compass = compass + 360
+                
+        self.angle_kalman_filter.update(compass)
+
         filtered_compass,_ = self.angle_kalman_filter.get_estimate()[0]
+
+
         filtered_compass = int(filtered_compass)
 
         # Update direction

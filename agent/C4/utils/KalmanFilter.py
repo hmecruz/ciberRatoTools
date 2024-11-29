@@ -108,6 +108,8 @@
 #         return float(self.x[0,0]), float(self.P[0,0])
     
 
+# TODO: get an explanation for this kalman filter or do it as Lau did
+
 import numpy as np
 
 class AngleKalmanFilter:
@@ -149,3 +151,40 @@ class AngleKalmanFilter:
     
     def get_estimate(self):
         return self.x_updated,self.x_pred
+
+
+
+# ----
+# Lau implementation
+# import numpy as np
+
+# # Initialize state, covariance, and matrices
+# X = np.array([[0], [0]])  # Initial state [angle; angular rate]
+# P = np.eye(2)             # Initial covariance
+# F = np.array([[1, 0.1],   # State transition matrix (example)
+#               [0, 1]])
+# B = np.array([[0], [0]])  # Control input matrix (if no control input, keep as zeros)
+# H = np.array([[1, 0]])    # Measurement matrix
+# Q = np.array([[1e-4, 0],  # Process noise covariance
+#               [0, 1e-4]])
+# R = np.array([[1e-2]])    # Measurement noise covariance
+# I = np.eye(2)             # Identity matrix
+
+# # Simulated measurements (replace with your compass data)
+# measurements = [30 + np.random.normal(0, 0.1) for _ in range(100)]  # Noisy measurements
+
+# # Kalman Filter loop
+# for Z in measurements:
+#     Z = np.array([[Z]])  # Current measurement as column vector
+
+#     # Prediction Step
+#     X_pred = F @ X + B @ np.array([[0]])  # Replace with control input if applicable
+#     P_pred = F @ P @ F.T + Q
+
+#     # Update Step
+#     K = P_pred @ H.T @ np.linalg.inv(H @ P_pred @ H.T + R)  # Kalman gain
+#     X = X_pred + K @ (Z - H @ X_pred)                      # State update
+#     P = (I - K @ H) @ P_pred                               # Covariance update
+
+#     # Output the filtered state (angle and angular rate)
+#     print(f"Filtered Angle: {X[0, 0]:.2f}, Filtered Rate: {X[1, 0]:.2f}")

@@ -13,6 +13,8 @@ MOVE_SOUTH = (0, -2)
 
 SENSOR_THRESHOLD = 1.0 # Wall Detection
 
+CENTER_SENSOR_SETPOINT = 5 # (1/0.2)
+
 # Velocity limits
 MAX_POW = 0.15
 MIN_POW = -0.15
@@ -27,6 +29,10 @@ KD = 0
 # Steering PD Controller Values
 KPS = 0.02 
 KDS = 0.00003 
+
+# Recalibration PD Controller Values
+KPR = 0.35 
+KDR = 0 
 
 # Maze Size
 CELLROWS=7

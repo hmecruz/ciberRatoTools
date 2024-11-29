@@ -62,6 +62,8 @@ class Cell:
                 wall_to_mark = sensor_map[current_direction].get(sensor_name)
                 if wall_to_mark:
                     setattr(self, wall_to_mark, True)  # Mark the wall as True
+
+        # TODO: might need to return tha walls that were detected to activate the recalibration mode
     
     
     def vector_wall(self, vector):
