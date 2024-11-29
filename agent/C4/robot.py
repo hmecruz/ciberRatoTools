@@ -114,6 +114,8 @@ class Robot(CRobLinkAngs):
             filtered["y"].append(self.measures.y)
             filtered["compass"].append(self.robot.current_direction)
 
+            print(f"{self.robot.moving_mode} {self.robot.steering_mode} {self.robot.recalibration_mode}")
+
 
 
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
@@ -132,7 +134,7 @@ class Robot(CRobLinkAngs):
                 print("Terminei a recalibração")
                 self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
-                if self.steering(): continue
+                continue
 
             # Robot reach new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
@@ -279,7 +281,9 @@ class Robot(CRobLinkAngs):
             (
                 abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
                 abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
-                Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
+                #Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint)
+                abs(self.robot.current_position[0] - self.robot.position_setpoint[0]) < 0.15 and \
+                abs(self.robot.current_position[1] - self.robot.position_setpoint[1]) < 0.15 
             ):
 
             self.robot.movement_model.input_signal_left = 0

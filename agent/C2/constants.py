@@ -21,7 +21,7 @@ MIN_POW = -0.15
 TIME_STEP = 0.005
 
 # Throttle PD Controller values
-KP = 0.35 
+KP = 0.035 
 KD = 0 
 
 # Steering PD Controller Values
