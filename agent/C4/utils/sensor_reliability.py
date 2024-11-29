@@ -1,7 +1,7 @@
 from collections import deque
 import math
 
-RELIABILITY_THRESHOLD = 0.05
+RELIABILITY_THRESHOLD = 0.02
 
 
 class SensorReliabilty:
@@ -30,3 +30,7 @@ class SensorReliabilty:
         if dev > RELIABILITY_THRESHOLD:
             return False, -1
         return True, value
+
+    def clear_window(self):
+        self.values.clear()
+

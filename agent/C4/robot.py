@@ -6,6 +6,7 @@ from utils.maze_map import MazeMap, Cell
 from utils.pd_controller import PDController
 from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
+from utils.sensor_reliability import *
 
 
 import signal
@@ -64,7 +65,7 @@ def signal_handler(sig, frame):
     plt.legend()
     plt.grid(True)
     plt.savefig(f"plot/compass.png")
-    #plt.show()
+    plt.show()
 
 
     
@@ -90,6 +91,8 @@ class Robot(CRobLinkAngs):
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
+        self.sensor_reliability  = SensorReliabilty(window_size=5)
+
 
     def run(self):
         if self.status != 0:
@@ -114,15 +117,16 @@ class Robot(CRobLinkAngs):
             filtered["y"].append(self.measures.y)
             filtered["compass"].append(self.robot.current_direction)
 
-            print(f"{self.robot.moving_mode} {self.robot.steering_mode} {self.robot.recalibration_mode}")
-
-
+            
 
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
                 if self.steering():
                     continue
                 self.robot.switch_to_moving()
+                if self.robot.recalibration_mode == True: continue 
             if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
+                if self.robot.recalibration_mode:
+                    print("moving")
                 if self.move_forward(): 
                     continue
                 self.robot.switch_to_steering()
@@ -131,6 +135,34 @@ class Robot(CRobLinkAngs):
                 print("Recalibrar")
                 if self.recalibration():
                     continue
+
+                is_reliable,distance = self.sensor_reliability.update(self.robot.ir_sensors["center"])
+                if not is_reliable:
+                    continue
+
+                # TODO: change current position
+                dir = closest_direction(self.robot.current_direction) 
+
+
+                distance = 0.5 - (1 / distance)
+
+                print(f"Distance: {distance}")
+                print(f"Dir: {dir}")
+                print(f"SP: {self.robot.position_setpoint}")
+                print(f"CPb: {self.robot.current_position}")
+
+                if dir ==  EAST:
+                    self.robot.current_position = (self.robot.position_setpoint[0]+distance, self.robot.current_position[1])
+                elif dir == WEST:
+                    self.robot.current_position = (self.robot.position_setpoint[0]-distance, self.robot.current_position[1])
+                elif dir == NORTH:
+                    self.robot.current_position = (self.robot.current_position[0], self.robot.position_setpoint[1]+distance)
+                else:
+                    self.robot.current_position = (self.robot.current_position[0], self.robot.position_setpoint[1]-distance)
+                
+                print(f"CPa: {self.robot.current_position}")
+                
+
                 print("Terminei a recalibração")
                 self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
@@ -148,6 +180,7 @@ class Robot(CRobLinkAngs):
                     continue
 
             self.robot.recalibration_complete = False # Reset recalibration for next move
+            self.sensor_reliability.clear_window()
 
             # Recalibrate 
 
@@ -268,7 +301,7 @@ class Robot(CRobLinkAngs):
             self.robot.movement_model.input_signal_left = 0
             self.robot.movement_model.input_signal_right  = 0
              
-            self.driveMotors(0, 0) if self.robot.recalibration_complete == False else self.driveMotors(-0.1, -0.1) # Stop motors
+            self.driveMotors(0, 0) if self.robot.recalibration_complete == False else self.driveMotors(-0.15, -0.15) # Stop motors
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
