@@ -13,7 +13,7 @@ MOVE_SOUTH = (0, -2)
 
 SENSOR_THRESHOLD = 1.0 # Wall Detection
 
-CENTER_SENSOR_SETPOINT = 5 # (1/0.2)
+CENTER_SENSOR_SETPOINT = 10 # (1/0.2)
 
 # Velocity limits
 MAX_POW = 0.15
@@ -31,7 +31,7 @@ KPS = 0.02
 KDS = 0.00003 
 
 # Recalibration PD Controller Values
-KPR = 0.025 
+KPR = 0.035
 KDR = 0 
 
 # Maze Size

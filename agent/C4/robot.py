@@ -189,8 +189,8 @@ class Robot(CRobLinkAngs):
                 # TODO: might need to reset either MM or KF (i think it is KF)
 
                 print("Terminei a recalibração")
-                self.robot.switch_to_moving()
-                #self.robot.switch_to_steering()
+                #self.robot.switch_to_moving()
+                self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
                 continue
 
@@ -324,12 +324,15 @@ class Robot(CRobLinkAngs):
     
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
-            (abs(self.robot.previous_direction - self.robot.current_direction) <= 3 and abs(self.robot.direction_setpoint - self.robot.current_direction) <= 1):
-            #abs(self.robot.current_direction - self.robot.previous_direction) <= 0:
+            (
+                abs(self.robot.previous_direction - self.robot.current_direction) <= 3 and \
+                abs(self.robot.direction_setpoint - self.robot.current_direction) <= 1
+            ):
+
             self.robot.movement_model.input_signal_left = 0
             self.robot.movement_model.input_signal_right  = 0
              
-            self.driveMotors(0, 0) #if self.robot.recalibration_complete == False else self.driveMotors(-0.15, -0.15) # Stop motors
+            self.driveMotors(0, 0) # Stop motors
             return False
 
         steering_correction = self.steering_pd_controller.compute_angle(self.robot.current_direction, self.robot.direction_setpoint)
@@ -345,16 +348,17 @@ class Robot(CRobLinkAngs):
         print(f"Current Position: {self.robot.current_position}")
         print(f"Position Setpoint: {self.robot.position_setpoint}")
         
-
-
-
-        #if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
-
-        if (
-                abs(self.robot.position_setpoint[0] - self.robot.current_position[0]) < 0.2 and \
-                abs(self.robot.position_setpoint[1] - self.robot.current_position[1]) < 0.2 and \
-                Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint) 
-            ):
+        if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
+        (
+            abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
+            abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
+            (
+                (closest_direction(self.robot.current_direction) in (NORTH, SOUTH) and \
+                abs(self.robot.current_position[1] - self.robot.position_setpoint[1]) < 0.1) or \
+                (closest_direction(self.robot.current_direction) in (WEST, EAST) and \
+                abs(self.robot.current_position[0] - self.robot.position_setpoint[0]) < 0.1)
+            )
+        ):
 
             self.robot.movement_model.input_signal_left = 0
             self.robot.movement_model.input_signal_right = 0
@@ -376,8 +380,23 @@ class Robot(CRobLinkAngs):
         if invert_power:
             motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
+        # current_angle = self.robot.current_direction
+        # if current_angle < 0:
+        #     current_angle = 360 + current_angle
+        
+        # diff_angle = abs(current_angle - self.robot.direction_setpoint)
+        
+        # if abs(diff_angle) > 3:
+        #     angle_correction = self.angle_pd_controller.compute(current_angle, self.robot.direction_setpoint)
+        #     self.robot.movement_model.input_signal_left = motor_power - angle_correction
+        #     self.robot.movement_model.input_signal_right = motor_power + angle_correction
+        # else:
+        #     self.robot.movement_model.input_signal_left = motor_power
+        #     self.robot.movement_model.input_signal_right = motor_power
+
         self.robot.movement_model.input_signal_left = motor_power
         self.robot.movement_model.input_signal_right = motor_power
+
         self.driveMotors(motor_power, motor_power)    
         #print(f"Throttle Power: ({motor_power}, {motor_power})")
     
