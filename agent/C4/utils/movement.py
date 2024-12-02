@@ -22,14 +22,7 @@ class MovementModel:
 
         self.input_signal_left = 0
         self.input_signal_right = 0
-
-        # Robot filtered compass
-        # self.filtered_compass = NoiseFilter(window_size=1)
-        # self.filtered_x = NoiseFilter(window_size=2)
-        # self.filtered_y = NoiseFilter(window_size=2)
-
-        # measurement_variance = (2**2/360**2) -> covariance
-        #self.angle_kalman_filter = AngleKalmanFilter(0, 0.1)
+        
         self.angle_kalman_filter = AngleKalmanFilter()
 
     @staticmethod

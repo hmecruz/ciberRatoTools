@@ -151,6 +151,13 @@ class AngleKalmanFilter:
     
     def get_estimate(self):
         return self.x_updated,self.x_pred
+    
+    # function to reset the filter
+    def reset(self):
+        self.x_pred = np.array([[0], [0]])  # Initial prediction
+        self.x_updated = np.array([[0], [0]])  # Initial update
+        self.P = np.eye(2) * 500
+        self.firstTime = True
 
 
 

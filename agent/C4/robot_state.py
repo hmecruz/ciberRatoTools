@@ -28,6 +28,7 @@ class RobotState:
         self.moving_mode = False
         self.recalibration_mode = False
         self.recalibration_complete = False
+        self.recalibration_has_ended = True
        
         # Cell state
         self.cell = None          
