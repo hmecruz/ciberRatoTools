@@ -189,8 +189,8 @@ class Robot(CRobLinkAngs):
                 # TODO: might need to reset either MM or KF (i think it is KF)
 
                 print("Terminei a recalibração")
-                #self.robot.switch_to_moving()
-                self.robot.switch_to_steering()
+                self.robot.switch_to_moving()
+                #self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
                 continue
 
@@ -208,7 +208,7 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_complete = False # Reset recalibration for next move
             self.sensor_reliability.clear_window()
             self.robot.movement_model.angle_kalman_filter.reset()
-            
+
 
             # Recalibrate 
 
@@ -348,10 +348,11 @@ class Robot(CRobLinkAngs):
 
 
 
-        if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
-            (
-                abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
-                abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
+        #if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
+
+        if (
+                abs(self.robot.position_setpoint[0] - self.robot.current_position[0]) < 0.2 and \
+                abs(self.robot.position_setpoint[1] - self.robot.current_position[1]) < 0.2 and \
                 Cell.inside_cell(self.robot.current_position, self.robot.cell_setpoint) 
             ):
 
