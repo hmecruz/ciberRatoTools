@@ -7,66 +7,23 @@ from utils.pd_controller import PDController
 from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 from utils.sensor_reliability import *
+from utils.MultiColumnData import *
 
 
 import signal
 import sys
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('qt5Agg')
 
-
-noise = {
-    "x": [],
-    "y": [],
-    "compass": []
-}
-
-filtered = {
-    "x": [],
-    "y": [],
-    "compass": []
-}
+DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
+DATA_Y = MultiColumnData(2,['Y (GPS)','Y (MM)'])
+DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
 
 def signal_handler(sig, frame):
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(noise["x"][-1000:], marker='o', linestyle='-', color='blue', label="MM.x")
-    plt.plot(filtered["x"][-1000:], marker='s', linestyle='--', color='red', label="GPS.x")
-        # Adding labels and title
-    plt.xlabel("Cycles")
-    plt.ylabel("x")
-    plt.title("Plot of X position")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(f"plot/x_position.png")
-    #plt.show()
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(noise["y"][-1000:], marker='o', linestyle='-', color='blue', label="MM.y")
-    plt.plot(filtered["y"][-1000:], marker='s', linestyle='--', color='red', label="GPS.y")
-        # Adding labels and title
-    plt.xlabel("Cycles")
-    plt.ylabel("y")
-    plt.title("Plot of y position")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(f"plot/y_position.png")
-    #plt.show()
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(noise["compass"][-1000:], marker='o', linestyle='-', color='blue', label="Noise Compass")
-    plt.plot(filtered["compass"][-1000:], marker='s', linestyle='--', color='red', label="MM Compass")
-        # Adding labels and title
-    plt.xlabel("Cycles")
-    plt.ylabel("compass")
-    plt.title("Plot of compass")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(f"plot/compass.png")
+    print('You pressed Ctrl+C!')
+    DATA_X.plot_all_columns()
+    DATA_Y.plot_all_columns()
+    DATA_COMPASS.plot_all_columns()
     plt.show()
-
-
+    
     
     # Perform any cleanup here
     sys.exit(0)
@@ -109,15 +66,11 @@ class Robot(CRobLinkAngs):
             print("----------------------------------------")
 
             # TODO: remove this
-            noise["x"].append(self.realGPS[0] + self.robot.current_position[0])
-            noise["y"].append(self.realGPS[1] + self.robot.current_position[1])
-            noise["compass"].append(self.measures.compass)
-            filtered["x"].append(self.measures.x)
-            filtered["y"].append(self.measures.y)
-            filtered["compass"].append(self.robot.current_direction)
+            DATA_X.add_row([self.realGPS[0] + self.robot.current_position[0], self.measures.x])
+            DATA_Y.add_row([self.realGPS[1] + self.robot.current_position[1], self.measures.y])
+            DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
 
             
-
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
                 if self.steering():
                     continue

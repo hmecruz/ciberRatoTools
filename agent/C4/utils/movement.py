@@ -24,6 +24,9 @@ class MovementModel:
         self.input_signal_left = 0
         self.input_signal_right = 0
 
+        # TODO: remove this if u want, just for testing and plots
+        self.compass_movement_model = 0
+
         self.angle_kalman_filter = AngleKalmanFilter()
 
     @staticmethod
@@ -114,16 +117,16 @@ class MovementModel:
         )
 
         # Compute direction
-        compass_movement_model = self.compute_direction(
+        self.compass_movement_model = self.compute_direction(
             self.robot_state.current_direction, rotational_vel
         )
 
         if not self.angle_kalman_filter.firstTime:
-            if compass_movement_model < -170:
-                compass_movement_model = compass_movement_model + 360
+            if self.compass_movement_model < -170:
+                self.compass_movement_model = self.compass_movement_model + 360
 
             self.angle_kalman_filter.predict(
-                np.array([[compass_movement_model], [self.out_left], [self.out_right]]),
+                np.array([[self.compass_movement_model], [self.out_left], [self.out_right]]),
                 np.array([[self.input_signal_left], [self.input_signal_right]]),
             )
         else:
