@@ -207,7 +207,7 @@ class Robot(CRobLinkAngs):
 
             self.robot.recalibration_complete = False # Reset recalibration for next move
             self.sensor_reliability.clear_window()
-            self.robot.movement_model.angle_kalman_filter.reset()
+            #self.robot.movement_model.angle_kalman_filter.reset()
 
 
             # Recalibrate 

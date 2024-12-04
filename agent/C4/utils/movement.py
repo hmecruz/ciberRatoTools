@@ -4,8 +4,9 @@ from constants import *
 from utils.noise_filter import *
 from utils.KalmanFilter import *
 
-def normalize_angle( angle):
-    """Ensure angle is between -180 and 180.""" 
+
+def normalize_angle(angle):
+    """Ensure angle is between -180 and 180."""
     normalized_angle = (angle + 180) % 360 - 180
     return normalized_angle if normalized_angle != -180 else 180
 
@@ -22,7 +23,7 @@ class MovementModel:
 
         self.input_signal_left = 0
         self.input_signal_right = 0
-        
+
         self.angle_kalman_filter = AngleKalmanFilter()
 
     @staticmethod
@@ -52,7 +53,7 @@ class MovementModel:
 
         # if prev_direction_degrees <= -90 or prev_direction_degrees >= 90:
         #     print(f"Prev Direction: {prev_direction_degrees}\nRotational Vel: {rotational_vel}")
-        
+
         # if prev_direction_degrees < 0:
         #     prev_direction_degrees = 360 + prev_direction_degrees
 
@@ -64,12 +65,11 @@ class MovementModel:
 
         # TODO: [-PI,PI]
 
-
         direction_radians = prev_direction_radians + rotational_vel
 
-        direction =  math.degrees(direction_radians)
+        direction = math.degrees(direction_radians)
 
-        #direction = normalize_angle(direction)
+        # direction = normalize_angle(direction)
 
         # TODO: [-180,180]
 
@@ -108,7 +108,6 @@ class MovementModel:
     def update_direction(self, compass):
         # Calculate direction based on formulas
 
-        
         # Compute rotational component
         rotational_vel = self.compute_rotational_velocity(
             self.out_left, self.out_right, self.wheel_distance
@@ -119,36 +118,33 @@ class MovementModel:
             self.robot_state.current_direction, rotational_vel
         )
 
-
-
         if not self.angle_kalman_filter.firstTime:
             if compass_movement_model < -170:
                 compass_movement_model = compass_movement_model + 360
 
-            self.angle_kalman_filter.predict(compass_movement_model)
+            self.angle_kalman_filter.predict(
+                np.array([[compass_movement_model], [self.out_left], [self.out_right]]),
+                np.array([[self.input_signal_left], [self.input_signal_right]]),
+            )
         else:
             self.angle_kalman_filter.firstTime = False
 
         if compass < -170:
-                compass = compass + 360
-                
-        self.angle_kalman_filter.update(compass)
+            compass = compass + 360
 
-        filtered_compass,_ = self.angle_kalman_filter.get_estimate()[0]
+        self.angle_kalman_filter.update(np.array([[compass]]))
 
+        # TODO: KALMAN FILTER, CHECK IF LAST WAS < 0 IF IT IS ADD 360
+        
+        filtered_compass, _ = self.angle_kalman_filter.get_estimate()
 
-        filtered_compass = int(filtered_compass)
+        filtered_compass = int(filtered_compass[0])
 
         # Update direction
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
-        
-        #print(f"MM Direction: {compass_movement_model}")
-        #print(f"Noise Direction: {compass}")
-        #print(f"Filtered Direction: {filtered_compass}")
 
-       
-
-
-   
+        # print(f"MM Direction: {compass_movement_model}")
+        # print(f"Noise Direction: {compass}")
+        # print(f"Filtered Direction: {filtered_compass}")
