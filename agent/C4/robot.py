@@ -13,6 +13,9 @@ from utils.MultiColumnData import *
 import signal
 import sys
 
+
+#############################
+
 DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
 DATA_Y = MultiColumnData(2,['Y (GPS)','Y (MM)'])
 DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
@@ -33,7 +36,6 @@ signal.signal(signal.SIGINT, signal_handler)
 #############################
 
 
-
 class Robot(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host, outfile):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angs=angles, host=host)
@@ -44,7 +46,7 @@ class Robot(CRobLinkAngs):
         self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
-        self.speed_steering_pd_controller = PDController(kp=KPSS, kd=KDSS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
+        self.speed_steering_pd_controller = PDController(kp=KPSS, kd=KDSS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle Steering
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
@@ -62,85 +64,49 @@ class Robot(CRobLinkAngs):
         self.realGPS = (self.measures.x,self.measures.y)
 
         while True:
-            # TODO: add a false so the loop doesnt continue
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
-            #print("----------------------------------------")
+            print("----------------------------------------")
+
 
             # TODO: remove this
             DATA_X.add_row([self.realGPS[0] + self.robot.current_position[0], self.measures.x])
             DATA_Y.add_row([self.realGPS[1] + self.robot.current_position[1], self.measures.y])
             DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
 
-            
+
+            # Steering Mode
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
                 if self.steering():
                     continue
                 self.robot.switch_to_moving()
                 if self.robot.recalibration_mode == True: continue 
+            
+            # Throttle Mode
             if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
                 if self.move_forward(): 
                     continue
                 self.robot.switch_to_steering()
                 if self.steering(): continue # After finish moving forward adjust direction
+            
+            # Recalibration Mode
             if self.robot.recalibration_mode == True:
                 if self.robot.recalibration_phase == 0:
                     if self.recalibration():
                         print("Recalibrar")
                         continue
-                    else: self.robot.recalibration_phase = 1 # New recalibration phase
+                    else: self.robot.recalibration_phase = 1 # Next recalibration phase
                 
-                is_reliable,distance = self.sensor_reliability.update(self.robot.ir_sensors["center"])
-                if not is_reliable:
-                    continue
-
-                # TODO: change current position
-                dir = closest_direction(self.robot.current_direction) 
-
-                print(f"Cycle:  {self.measures.time}")
-                print(f"Distance: {1/distance}")
-
-
-                # TODO: Doing wrong this calculation, GPS and MM should be equal
-                # WALLS ARE 0.2 THICK
-                distance = (0.5-0.1) - 1/distance
-                
-
-                print(f"DistanceT: {distance}")
-                print(f"Dir: {dir}")
-                print(f"CD: {self.robot.current_direction}")
-                #print(f"DiffDir: {diff_angle}")
-                print(f"SP: {self.robot.position_setpoint}")
-                print(f"CPb: {self.robot.current_position}")
-
-                if dir ==  EAST:
-                    self.robot.current_position = (round(self.robot.position_setpoint[0]+distance,2), self.robot.current_position[1])
-                    print("X")
-                elif dir == WEST:
-                    self.robot.current_position = (round(self.robot.position_setpoint[0]-distance,2), self.robot.current_position[1])
-                    print("X")
-                elif dir == NORTH:
-                    self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]+distance,2))
-                    print("Y")
-                else:
-                    print("Y")
-                    self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]- distance,2))
-                
-                
-                print(f"CPa: {self.robot.current_position}")
-                print(f"M: {self.measures.x - self.realGPS[0]} {self.measures.y- self.realGPS[1]}")
-                
-                # TODO: might need to reset either MM or KF (i think it is KF)
-
-                print("Terminei a recalibração")
-                self.robot.switch_to_steering()
-                self.robot.recalibration_complete = True
-                self.robot.recalibration_phase = 0
+                is_reliable, distance = self.sensor_reliability.update(self.robot.ir_sensors["center"])
+                if is_reliable: 
+                    self.recalibrate_position(distance)
                 continue
 
-            # Robot reach new position
+
+            # Robot reach a new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
+
             # Activate recalibration if wall in front
             if self.robot.recalibration_complete == False: # If recalibration has not been done
                 front_wall = sensor_map.get("center")
@@ -148,11 +114,12 @@ class Robot(CRobLinkAngs):
                     self.robot.switch_to_recalibration() 
                     continue
 
-            self.robot.recalibration_complete = False # Reset recalibration for next move
+
+            self.robot.recalibration_complete = False
             self.sensor_reliability.clear_window()
-            #self.robot.movement_model.angle_kalman_filter.reset()
 
 
+            # Target Cells
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
                 self.robot.first_target_cell = self.robot.cell
             if self.robot.second_target_cell is None and self.measures.ground == 2:
@@ -163,24 +130,13 @@ class Robot(CRobLinkAngs):
                     sys.exit(0)
 
 
-            print("----------------------------------------")
-
-            print(f"Current Position: {self.robot.current_position}")
-            # Print the IR sensor values
-            print("IR Sensor Readings:")
-            for position, value in self.robot.ir_sensors.items():
-                print(f"{position.capitalize()}: {value}")
-
-            
-
             # Compute next position
             if self.robot.pathfinding_path:
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
                     if bfs(self) == False: break # Map exploration complete
-            
-            print(f"Target Position: {self.robot.position_setpoint}")
+        
           
         self.compute_target_cell_path()
     
@@ -335,43 +291,13 @@ class Robot(CRobLinkAngs):
 
         base_speed = motor_power
         
-        if self.robot.direction_setpoint == EAST:
-            if steering_power >= 0:
-                left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power))  
-                right_motor_power = base_speed
-            else:
-                left_motor_power = base_speed  
-                right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
-        
-        elif self.robot.direction_setpoint == WEST:
-            if steering_power >= 0:
-                left_motor_power = base_speed
-                right_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power)) 
-            else:
-                left_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
-                right_motor_power = base_speed
-        
-        elif self.robot.direction_setpoint  == NORTH:
-            if steering_power >= 0:
-                left_motor_power = base_speed
-                right_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power))
-            else:
-                left_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
-                right_motor_power = base_speed
-        
-        elif self.robot.direction_setpoint == SOUTH:
-            if steering_power >= 0:
-                left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power)) 
-                right_motor_power = base_speed 
-            else:
-                left_motor_power = base_speed
-                right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
-
+        if self.robot.direction_setpoint in [EAST, SOUTH]:
+            left_motor_power, right_motor_power = self.calculate_motor_power(base_speed, steering_power)
+        elif self.robot.direction_setpoint in [WEST, NORTH]:
+            right_motor_power, left_motor_power = self.calculate_motor_power(base_speed, steering_power)
 
         self.robot.movement_model.input_signal_left = left_motor_power
         self.robot.movement_model.input_signal_right = right_motor_power
-
-
 
         self.driveMotors(left_motor_power, right_motor_power)    
         #print(f"Base Speed: {base_speed}")
@@ -379,6 +305,17 @@ class Robot(CRobLinkAngs):
         #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         #print(f"Throttle Power: ({left_motor_power}, {right_motor_power})")
     
+
+    def calculate_motor_power(self, base_speed, steering_power):
+        if steering_power >= 0:
+            left_motor = max(MIN_POW, min(base_speed, base_speed - steering_power))
+            right_motor = base_speed
+        else:
+            left_motor = base_speed
+            right_motor = max(MIN_POW, min(base_speed, base_speed + steering_power))
+        return left_motor, right_motor
+
+
     def recalibration(self):
         if self.robot.previous_position == self.robot.current_position and self.robot.ir_sensors["center"] == CENTER_SENSOR_SETPOINT or \
             (
@@ -401,6 +338,36 @@ class Robot(CRobLinkAngs):
 
         return True
     
+    
+    def recalibrate_position(self, distance):
+        dir = closest_direction(self.robot.current_direction) 
+        
+        # Center of cell - Wall thickness - distance from the wall
+        distance = (0.5 - 0.1) - (1 / distance)
+        
+        #print(f"Distance: {distance}")
+        #print(f"Direction: {dir}")
+        #print(f"Current Direction: {self.robot.current_direction}")
+        #print(f"Current Position: {self.robot.current_position}")
+        #print(f"Position Setpoint: {self.robot.position_setpoint}")
+
+        if dir ==  EAST:
+            self.robot.current_position = (round(self.robot.position_setpoint[0]+distance,2), self.robot.current_position[1]) 
+        elif dir == WEST:
+            self.robot.current_position = (round(self.robot.position_setpoint[0]-distance,2), self.robot.current_position[1])
+        elif dir == NORTH:
+            self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]+distance,2))
+        else: # South
+            self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]- distance,2))
+        
+        print(f"Recalibrated Current Position: {self.robot.current_position}")
+        
+        self.robot.switch_to_steering()
+        self.robot.recalibration_complete = True
+        self.robot.recalibration_phase = 0
+
+        print("Terminei a recalibração")
+                
 
     def create_cell_from_vector(self, vector):
         """Create a cell based on the robot's next position vector and current cell."""
