@@ -22,7 +22,7 @@ def signal_handler(sig, frame):
     DATA_X.plot_all_columns()
     DATA_Y.plot_all_columns()
     DATA_COMPASS.plot_all_columns()
-    plt.show()
+    #plt.show()
     
     
     # Perform any cleanup here
@@ -140,7 +140,6 @@ class Robot(CRobLinkAngs):
                 # TODO: might need to reset either MM or KF (i think it is KF)
 
                 print("Terminei a recalibração")
-                #self.robot.switch_to_moving()
                 self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
                 self.robot.recalibration_phase = 0
@@ -160,9 +159,6 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_complete = False # Reset recalibration for next move
             self.sensor_reliability.clear_window()
             #self.robot.movement_model.angle_kalman_filter.reset()
-
-
-            # Recalibrate 
 
 
             if self.robot.first_target_cell is None and self.measures.ground == 1: 

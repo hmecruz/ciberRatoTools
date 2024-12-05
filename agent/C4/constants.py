@@ -28,14 +28,14 @@ KD = 0
 
 # Speed Steering PD Controller Values
 KPSS = 0.1
-KDSS = 0
+KDSS = 0.01
 
 # Steering PD Controller Values
 KPS = 0.02 
 KDS = 0.00003 
 
 # Recalibration PD Controller Values
-KPR = 0.01
+KPR = 0.008
 KDR = 0
 
 # Maze Size
