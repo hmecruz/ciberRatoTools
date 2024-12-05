@@ -139,15 +139,19 @@ class MovementModel:
 
         # TODO: KALMAN FILTER, CHECK IF LAST WAS < 0 IF IT IS ADD 360
         
-        filtered_compass, _ = self.angle_kalman_filter.get_estimate()
+        filtered_compass, predicted_compass = self.angle_kalman_filter.get_estimate()
 
-        filtered_compass = int(filtered_compass[0])
+        print(f"Predicted Compass: {predicted_compass}")
+        print(f"Filtered Compass: {filtered_compass}")
+        
+
+        filtered_compass = int(np.round(filtered_compass[0]))
 
         # Update direction
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
 
-        # print(f"MM Direction: {compass_movement_model}")
-        # print(f"Noise Direction: {compass}")
-        # print(f"Filtered Direction: {filtered_compass}")
+        print(f"MM Direction: {self.compass_movement_model}")
+        print(f"Noise Direction: {compass}")
+        print(f"Filtered Direction: {filtered_compass}")

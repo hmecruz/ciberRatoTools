@@ -98,8 +98,8 @@ class Robot(CRobLinkAngs):
                 # TODO: change current position
                 dir = closest_direction(self.robot.current_direction) 
 
-                print(f"Cycle:  {self.measures.time}")
-                print(f"Distance: {1/distance}")
+                # print(f"Cycle:  {self.measures.time}")
+                # print(f"Distance: {1/distance}")
 
 
                 normalized_angle =  self.robot.current_direction
@@ -115,33 +115,33 @@ class Robot(CRobLinkAngs):
                 distance = (0.5-0.1) - abs(math.cos(diff_angle) * distance)
                 
 
-                print(f"DistanceT: {distance}")
-                print(f"Dir: {dir}")
-                print(f"CD: {self.robot.current_direction}")
-                print(f"DiffDir: {diff_angle}")
-                print(f"SP: {self.robot.position_setpoint}")
-                print(f"CPb: {self.robot.current_position}")
+                # print(f"DistanceT: {distance}")
+                # print(f"Dir: {dir}")
+                # print(f"CD: {self.robot.current_direction}")
+                # print(f"DiffDir: {diff_angle}")
+                # print(f"SP: {self.robot.position_setpoint}")
+                # print(f"CPb: {self.robot.current_position}")
 
                 if dir ==  EAST:
                     self.robot.current_position = (round(self.robot.position_setpoint[0]+distance,2), self.robot.current_position[1])
-                    print("X")
+                    # print("X")
                 elif dir == WEST:
                     self.robot.current_position = (round(self.robot.position_setpoint[0]-distance,2), self.robot.current_position[1])
-                    print("X")
+                    # print("X")
                 elif dir == NORTH:
                     self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]+distance,2))
-                    print("Y")
+                    # print("Y")
                 else:
-                    print("Y")
+                    # print("Y")
                     self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]- distance,2))
                 
                 
-                print(f"CPa: {self.robot.current_position}")
-                print(f"M: {self.measures.x - self.realGPS[0]} {self.measures.y- self.realGPS[1]}")
+                # print(f"CPa: {self.robot.current_position}")
+                # print(f"M: {self.measures.x - self.realGPS[0]} {self.measures.y- self.realGPS[1]}")
                 
                 # TODO: might need to reset either MM or KF (i think it is KF)
 
-                print("Terminei a recalibração")
+                # print("Terminei a recalibração")
                 #self.robot.switch_to_moving()
                 self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
@@ -296,11 +296,7 @@ class Robot(CRobLinkAngs):
         return True
     
     
-    def move_forward(self):
-        print(f"Previous Position: {self.robot.previous_position}")
-        print(f"Current Position: {self.robot.current_position}")
-        print(f"Position Setpoint: {self.robot.position_setpoint}")
-        
+    def move_forward(self):        
         if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
         (
             abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
