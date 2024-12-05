@@ -36,7 +36,7 @@ KDS = 0.00003
 
 # Recalibration PD Controller Values
 KPR = 0.01
-KDR = 0 
+KDR = 0
 
 # Maze Size
 CELLROWS=7

@@ -22,7 +22,7 @@ def signal_handler(sig, frame):
     DATA_X.plot_all_columns()
     DATA_Y.plot_all_columns()
     DATA_COMPASS.plot_all_columns()
-    #plt.show()
+    plt.show()
     
     
     # Perform any cleanup here
@@ -83,18 +83,15 @@ class Robot(CRobLinkAngs):
                 self.robot.switch_to_steering()
                 if self.steering(): continue # After finish moving forward adjust direction
             if self.robot.recalibration_mode == True:
-                if self.robot.recalibration_has_ended:
+                if self.robot.recalibration_phase == 0:
                     if self.recalibration():
                         print("Recalibrar")
                         continue
-
-                self.robot.recalibration_has_ended = False
+                    else: self.robot.recalibration_phase = 1 # New recalibration phase
                 
                 is_reliable,distance = self.sensor_reliability.update(self.robot.ir_sensors["center"])
                 if not is_reliable:
                     continue
-
-                self.robot.recalibration_has_ended = True
 
                 # TODO: change current position
                 dir = closest_direction(self.robot.current_direction) 
@@ -146,6 +143,7 @@ class Robot(CRobLinkAngs):
                 #self.robot.switch_to_moving()
                 self.robot.switch_to_steering()
                 self.robot.recalibration_complete = True
+                self.robot.recalibration_phase = 0
                 continue
 
             # Robot reach new position
