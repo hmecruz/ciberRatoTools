@@ -63,7 +63,6 @@ class Cell:
                 if wall_to_mark:
                     setattr(self, wall_to_mark, True)  # Mark the wall as True
         
-
         return sensor_map[current_direction]
 
     

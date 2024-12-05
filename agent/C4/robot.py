@@ -25,7 +25,7 @@ def signal_handler(sig, frame):
     DATA_X.plot_all_columns()
     DATA_Y.plot_all_columns()
     DATA_COMPASS.plot_all_columns()
-    #plt.show()
+    plt.show()
     
     
     # Perform any cleanup here
@@ -92,7 +92,7 @@ class Robot(CRobLinkAngs):
             if self.robot.recalibration_mode == True:
                 if self.robot.recalibration_phase == 0:
                     if self.recalibration():
-                        print("Recalibrar")
+                        #print("Recalibrar")
                         continue
                     else: self.robot.recalibration_phase = 1 # Next recalibration phase
                 
@@ -114,11 +114,6 @@ class Robot(CRobLinkAngs):
                     self.robot.switch_to_recalibration() 
                     continue
 
-
-            self.robot.recalibration_complete = False
-            self.sensor_reliability.clear_window()
-
-
             # Target Cells
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
                 self.robot.first_target_cell = self.robot.cell
@@ -136,15 +131,18 @@ class Robot(CRobLinkAngs):
             else: 
                 if not self.get_next_move() : # Compute the next move
                     if bfs(self) == False: break # Map exploration complete
+                    else: continue
+            
+            self.robot.recalibration_complete = False
+                
         
-          
         self.compute_target_cell_path()
     
+
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
             if sensor_value <= SENSOR_THRESHOLD: # If no wall
                 move_vector = self.robot.sensor_vector_map(sensor_name)
-                #next_position = (self.robot.current_position[0] + move_vector[0], self.robot.current_position[1] + move_vector[1])
                 cell_middle_position = self.robot.cell.get_middle_position()
                 next_position = (
                     cell_middle_position[0] + move_vector[0],
@@ -300,6 +298,11 @@ class Robot(CRobLinkAngs):
         self.robot.movement_model.input_signal_right = right_motor_power
 
         self.driveMotors(left_motor_power, right_motor_power)    
+        #if left_motor_power < right_motor_power:
+        #    print("Esquerda")
+        #elif left_motor_power > right_motor_power:
+        #    print("Direita")
+        #else: print("Frente")
         #print(f"Base Speed: {base_speed}")
         #print(f"Steering Speed: {steering_power}")
         #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
@@ -360,11 +363,12 @@ class Robot(CRobLinkAngs):
         else: # South
             self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]- distance,2))
         
-        print(f"Recalibrated Current Position: {self.robot.current_position}")
+        #print(f"Recalibrated Current Position: {self.robot.current_position}")
         
         self.robot.switch_to_steering()
         self.robot.recalibration_complete = True
         self.robot.recalibration_phase = 0
+        self.sensor_reliability.clear_window()
 
         print("Terminei a recalibração")
                 
