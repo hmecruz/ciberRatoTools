@@ -22,7 +22,7 @@ def signal_handler(sig, frame):
     DATA_X.plot_all_columns()
     DATA_Y.plot_all_columns()
     DATA_COMPASS.plot_all_columns()
-    plt.show()
+    #plt.show()
     
     
     # Perform any cleanup here
@@ -44,6 +44,7 @@ class Robot(CRobLinkAngs):
         self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
+        self.speed_steering_pd_controller = PDController(kp=KPSS, kd=KDSS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
@@ -297,9 +298,9 @@ class Robot(CRobLinkAngs):
     
     
     def move_forward(self):
-        print(f"Previous Position: {self.robot.previous_position}")
-        print(f"Current Position: {self.robot.current_position}")
-        print(f"Position Setpoint: {self.robot.position_setpoint}")
+        #print(f"Previous Position: {self.robot.previous_position}")
+        #print(f"Current Position: {self.robot.current_position}")
+        #print(f"Position Setpoint: {self.robot.position_setpoint}")
         
         if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
         (
@@ -318,40 +319,67 @@ class Robot(CRobLinkAngs):
             self.driveMotors(0, 0) # Stop Motors
             return False
                 
-        invert_power = self.robot.direction_setpoint in [SOUTH, WEST]
+        invert_power_speed = self.robot.direction_setpoint in [SOUTH, WEST]
         if self.robot.direction_setpoint in (WEST, EAST):
-            self.move_to_position(self.robot.current_position[0], self.robot.position_setpoint[0], invert_power) # x coordinate
+            self.move_to_position(self.robot.current_position[0], self.robot.position_setpoint[0], self.robot.current_position[1], self.robot.position_setpoint[1], invert_power_speed) # x coordinate
         elif self.robot.direction_setpoint in (NORTH, SOUTH):
-            self.move_to_position(self.robot.current_position[1], self.robot.position_setpoint[1], invert_power) # y coordinate
+            self.move_to_position(self.robot.current_position[1], self.robot.position_setpoint[1], self.robot.current_position[0], self.robot.position_setpoint[0], invert_power_speed) # y coordinate
         
         return True
     
 
-    def move_to_position(self, current_val, target_val, invert_power):
-        motor_power = self.speed_pd_controller.compute(current_val, target_val)
-
-        if invert_power:
+    def move_to_position(self, current_val_speed, target_val_speed, current_val_speed_steering, targer_val_speed_steering, invert_power_speed):
+        motor_power = self.speed_pd_controller.compute(current_val_speed, target_val_speed)
+        steering_power = self.speed_steering_pd_controller.compute(current_val_speed_steering, targer_val_speed_steering)
+        
+        if invert_power_speed:
             motor_power = -motor_power # Reverse motor power if robot is facing SOUTH or WEST
 
-        # current_angle = self.robot.current_direction
-        # if current_angle < 0:
-        #     current_angle = 360 + current_angle
+        base_speed = motor_power
         
-        # diff_angle = abs(current_angle - self.robot.direction_setpoint)
+        if self.robot.direction_setpoint == EAST:
+            if steering_power >= 0:
+                left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power))  
+                right_motor_power = base_speed
+            else:
+                left_motor_power = base_speed  
+                right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
         
-        # if abs(diff_angle) > 3:
-        #     angle_correction = self.angle_pd_controller.compute(current_angle, self.robot.direction_setpoint)
-        #     self.robot.movement_model.input_signal_left = motor_power - angle_correction
-        #     self.robot.movement_model.input_signal_right = motor_power + angle_correction
-        # else:
-        #     self.robot.movement_model.input_signal_left = motor_power
-        #     self.robot.movement_model.input_signal_right = motor_power
+        elif self.robot.direction_setpoint == WEST:
+            if steering_power >= 0:
+                left_motor_power = base_speed
+                right_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power)) 
+            else:
+                left_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
+                right_motor_power = base_speed
+        
+        elif self.robot.direction_setpoint  == NORTH:
+            if steering_power >= 0:
+                left_motor_power = base_speed
+                right_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power))
+            else:
+                left_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
+                right_motor_power = base_speed
+        
+        elif self.robot.direction_setpoint == SOUTH:
+            if steering_power >= 0:
+                left_motor_power = max(MIN_POW, min(base_speed, base_speed - steering_power)) 
+                right_motor_power = base_speed 
+            else:
+                left_motor_power = base_speed
+                right_motor_power = max(MIN_POW, min(base_speed, base_speed + steering_power))
 
-        self.robot.movement_model.input_signal_left = motor_power
-        self.robot.movement_model.input_signal_right = motor_power
 
-        self.driveMotors(motor_power, motor_power)    
-        #print(f"Throttle Power: ({motor_power}, {motor_power})")
+        self.robot.movement_model.input_signal_left = left_motor_power
+        self.robot.movement_model.input_signal_right = right_motor_power
+
+
+
+        self.driveMotors(left_motor_power, right_motor_power)    
+        print(f"Base Speed: {base_speed}")
+        print(f"Steering Speed: {steering_power}")
+        print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+        #print(f"Throttle Power: ({left_motor_power}, {right_motor_power})")
     
     def recalibration(self):
         if self.robot.previous_position == self.robot.current_position and self.robot.ir_sensors["center"] == CENTER_SENSOR_SETPOINT or \

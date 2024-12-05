@@ -22,16 +22,20 @@ MIN_POW = -0.15
 # Sampling Time
 TIME_STEP = 0.005
 
-# Throttle PD Controller values
+# Throttle PD Controller Values
 KP = 0.35 
 KD = 0 
+
+# Speed Steering PD Controller Values
+KPSS = 0.1
+KDSS = 0
 
 # Steering PD Controller Values
 KPS = 0.02 
 KDS = 0.00003 
 
 # Recalibration PD Controller Values
-KPR = 0.035
+KPR = 0.01
 KDR = 0 
 
 # Maze Size
