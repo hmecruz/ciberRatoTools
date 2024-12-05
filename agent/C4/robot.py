@@ -64,7 +64,7 @@ class Robot(CRobLinkAngs):
         while True:
             # TODO: add a false so the loop doesnt continue
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
-            print("----------------------------------------")
+            #print("----------------------------------------")
 
             # TODO: remove this
             DATA_X.add_row([self.realGPS[0] + self.robot.current_position[0], self.measures.x])
@@ -100,23 +100,15 @@ class Robot(CRobLinkAngs):
                 print(f"Distance: {1/distance}")
 
 
-                normalized_angle =  self.robot.current_direction
-                if normalized_angle < 0:
-                    normalized_angle = 360 + normalized_angle   
-
-                diff_angle = abs(dir - normalized_angle)
-
-
                 # TODO: Doing wrong this calculation, GPS and MM should be equal
                 # WALLS ARE 0.2 THICK
-                distance = 1/distance
-                distance = (0.5-0.1) - abs(math.cos(diff_angle) * distance)
+                distance = (0.5-0.1) - 1/distance
                 
 
                 print(f"DistanceT: {distance}")
                 print(f"Dir: {dir}")
                 print(f"CD: {self.robot.current_direction}")
-                print(f"DiffDir: {diff_angle}")
+                #print(f"DiffDir: {diff_angle}")
                 print(f"SP: {self.robot.position_setpoint}")
                 print(f"CPb: {self.robot.current_position}")
 
@@ -171,12 +163,24 @@ class Robot(CRobLinkAngs):
                     sys.exit(0)
 
 
+            print("----------------------------------------")
+
+            print(f"Current Position: {self.robot.current_position}")
+            # Print the IR sensor values
+            print("IR Sensor Readings:")
+            for position, value in self.robot.ir_sensors.items():
+                print(f"{position.capitalize()}: {value}")
+
+            
+
             # Compute next position
             if self.robot.pathfinding_path:
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
                     if bfs(self) == False: break # Map exploration complete
+            
+            print(f"Target Position: {self.robot.position_setpoint}")
           
         self.compute_target_cell_path()
     
@@ -370,9 +374,9 @@ class Robot(CRobLinkAngs):
 
 
         self.driveMotors(left_motor_power, right_motor_power)    
-        print(f"Base Speed: {base_speed}")
-        print(f"Steering Speed: {steering_power}")
-        print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+        #print(f"Base Speed: {base_speed}")
+        #print(f"Steering Speed: {steering_power}")
+        #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
         #print(f"Throttle Power: ({left_motor_power}, {right_motor_power})")
     
     def recalibration(self):
