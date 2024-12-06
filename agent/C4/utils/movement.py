@@ -5,10 +5,28 @@ from utils.noise_filter import *
 from utils.KalmanFilter import *
 
 
+def reflect_angle(angle):
+    angle = angle % 360
+    
+    if angle > 180:
+        angle -= 360
+    elif angle < -180:
+        angle += 360
+    
+    if angle > 90:
+        return 180 - angle
+    elif angle < -90:
+        return -180 - angle
+    
+    return angle
+
 def normalize_angle(angle):
-    """Ensure angle is between -180 and 180."""
-    normalized_angle = (angle + 180) % 360 - 180
-    return normalized_angle if normalized_angle != -180 else 180
+    if angle < 0:
+        return - (180+angle)
+    elif angle > 0:
+        return 180 - angle
+    else:
+        return 180
 
 
 class MovementModel:
@@ -121,9 +139,13 @@ class MovementModel:
             self.robot_state.current_direction, rotational_vel
         )
 
+        is_reflected = False
+
         if not self.angle_kalman_filter.firstTime:
-            if self.compass_movement_model < -170:
-                self.compass_movement_model = self.compass_movement_model + 360
+            if self.compass_movement_model < -90 or self.compass_movement_model > 90:
+                self.compass_movement_model = reflect_angle(self.compass_movement_model)
+                is_reflected = True
+                
 
             self.angle_kalman_filter.predict(
                 np.array([[self.compass_movement_model], [self.out_left], [self.out_right]]),
@@ -132,22 +154,27 @@ class MovementModel:
         else:
             self.angle_kalman_filter.firstTime = False
 
-        if compass < -170:
-            compass = compass + 360
+        if compass < -90 or compass > 90:
+            compass = reflect_angle(compass)
+            is_reflected = True
 
         self.angle_kalman_filter.update(np.array([[compass]]))
-
-        # TODO: KALMAN FILTER, CHECK IF LAST WAS < 0 IF IT IS ADD 360
         
-        filtered_compass, _ = self.angle_kalman_filter.get_estimate()
+        filtered_compass, predicted_compass = self.angle_kalman_filter.get_estimate()
+        
 
-        filtered_compass = int(filtered_compass[0])
+        filtered_compass = int(np.round(filtered_compass[0]))
+
+
+        if is_reflected:
+            filtered_compass = normalize_angle(filtered_compass)
+            self.compass_movement_model = normalize_angle(self.compass_movement_model)
 
         # Update direction
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
 
-        # print(f"MM Direction: {compass_movement_model}")
-        # print(f"Noise Direction: {compass}")
-        # print(f"Filtered Direction: {filtered_compass}")
+        print(f"MM Direction: {self.compass_movement_model}")
+        print(f"Noise Direction: {compass}")
+        print(f"Filtered Direction: {filtered_compass}")
