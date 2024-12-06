@@ -50,6 +50,9 @@ class Robot(CRobLinkAngs):
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
         self.sensor_reliability  = SensorReliabilty(window_size=5)
+        self.ground_reliability = SensorReliabilty(window_size=5)
+
+        self.is_next_cell = False
 
 
     def run(self):
@@ -71,6 +74,16 @@ class Robot(CRobLinkAngs):
             DATA_X.add_row([self.realGPS[0] + self.robot.current_position[0], self.measures.x])
             DATA_Y.add_row([self.realGPS[1] + self.robot.current_position[1], self.measures.y])
             DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
+
+
+            # Target Cells
+            has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
+
+            if has_target_cell and self.is_next_cell and target_id >= 0:
+                self.robot.target_cells[target_id] = self.robot.cell
+                self.is_next_cell = False
+                print(f"Target Cell: {self.robot.target_cells}")
+
 
 
             # Steering Mode
@@ -103,6 +116,7 @@ class Robot(CRobLinkAngs):
 
             # Robot reach a new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
+            self.is_next_cell = True
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
 
@@ -120,15 +134,9 @@ class Robot(CRobLinkAngs):
                 if closest_direction(self.robot.current_direction) in [WEST, EAST]: self.robot.recalibration_counter_x = 0
                 elif closest_direction(self.robot.current_direction) in [NORTH, SOUTH]: self.robot.recalibration_counter_y = 0
                 continue
+                
 
-
-            # Target Cells
-            if self.robot.first_target_cell is None and self.measures.ground == 1: 
-                self.robot.first_target_cell = self.robot.cell
-            if self.robot.second_target_cell is None and self.measures.ground == 2:
-                self.robot.second_target_cell = self.robot.cell
-
-            if self.robot.first_target_cell is not None and self.robot.second_target_cell is not None:
+            if len(self.robot.target_cells) >= int(self.nBeacons):
                 if self.compute_target_cell_path():
                     sys.exit(0)
 
@@ -200,6 +208,11 @@ class Robot(CRobLinkAngs):
 
     def compute_target_cell_path(self):    
         initial_cell = self.maze.get_cell(self.robot.initial_position)
+
+        # TODO: do all combinations and check which is shortest
+
+
+
     
         path1 = shortest_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
         path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)

@@ -43,8 +43,7 @@ class RobotState:
         self.pathfinding_path = []
 
         # Target Cells
-        self.first_target_cell = None
-        self.second_target_cell = None
+        self.target_cells = {}
         self.target_cell_path = []
 
         # Movement Model 
