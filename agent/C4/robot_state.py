@@ -27,9 +27,13 @@ class RobotState:
         self.steering_mode = True 
         self.moving_mode = False
         self.recalibration_mode = False
+        
+        # Recalibration
         self.recalibration_complete = False
         self.recalibration_phase = 0
-       
+        self.recalibration_counter_x = 0 # Counter till robot is able to recalibrate
+        self.recalibration_counter_y = 0 # Counter till robot is able to recalibrate
+
         # Cell state
         self.cell = None          
         self.cell_setpoint = None 
