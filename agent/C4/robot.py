@@ -27,7 +27,6 @@ def signal_handler(sig, frame):
     DATA_COMPASS.plot_all_columns()
     plt.show()
     
-    
     # Perform any cleanup here
     sys.exit(0)
 
@@ -107,12 +106,21 @@ class Robot(CRobLinkAngs):
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
 
-            # Activate recalibration if wall in front
-            if self.robot.recalibration_complete == False: # If recalibration has not been done
-                front_wall = sensor_map.get("center")
-                if getattr(self.robot.cell, front_wall) == True: # If wall in front 
-                    self.robot.switch_to_recalibration() 
-                    continue
+            # Recalibration
+            is_x_recalibration_due = closest_direction(self.robot.current_direction) in [WEST, EAST] and \
+                                        self.robot.recalibration_counter_x >= RECALIBRATION_PERIOD_X
+            
+            is_y_recalibration_due = closest_direction(self.robot.current_direction) in [NORTH, SOUTH] and \
+                                        self.robot.recalibration_counter_y >= RECALIBRATION_PERIOD_Y
+            
+            is_wall_in_front = getattr(self.robot.cell, sensor_map.get("center")) == True
+
+            if not self.robot.recalibration_complete and (is_x_recalibration_due or is_y_recalibration_due) and is_wall_in_front:
+                self.robot.switch_to_recalibration()
+                if closest_direction(self.robot.current_direction) in [WEST, EAST]: self.robot.recalibration_counter_x = 0
+                elif closest_direction(self.robot.current_direction) in [NORTH, SOUTH]: self.robot.recalibration_counter_y = 0
+                continue
+
 
             # Target Cells
             if self.robot.first_target_cell is None and self.measures.ground == 1: 
@@ -134,7 +142,8 @@ class Robot(CRobLinkAngs):
                     else: continue
             
             self.robot.recalibration_complete = False
-                
+            self.robot.recalibration_counter_x += 1
+            self.robot.recalibration_counter_y += 1
         
         self.compute_target_cell_path()
     
@@ -294,6 +303,7 @@ class Robot(CRobLinkAngs):
         elif self.robot.direction_setpoint in [WEST, NORTH]:
             right_motor_power, left_motor_power = self.calculate_motor_power(base_speed, steering_power)
 
+    
         self.robot.movement_model.input_signal_left = left_motor_power
         self.robot.movement_model.input_signal_right = right_motor_power
 

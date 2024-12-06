@@ -42,6 +42,10 @@ KDR = 0
 CELLROWS=7
 CELLCOLS=14
 
+# Recalibration after n moves
+RECALIBRATION_PERIOD_X = 4 
+RECALIBRATION_PERIOD_Y = 4
+
 
 def vector_to_direction(vector):
     vector_to_direction = {

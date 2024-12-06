@@ -134,8 +134,6 @@ class AngleKalmanFilter:
         self.P = self.F @ self.P @ self.F.T + self.Q
 
         
-        
-
     def update(self, z):
         # Measurement update with more measurement trust
         H = np.array([[1,0, 0]])  # Measurement model
