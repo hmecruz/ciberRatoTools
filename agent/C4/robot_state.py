@@ -27,9 +27,13 @@ class RobotState:
         self.steering_mode = True 
         self.moving_mode = False
         self.recalibration_mode = False
+        
+        # Recalibration
         self.recalibration_complete = False
-        self.recalibration_has_ended = True
-       
+        self.recalibration_phase = 0
+        self.recalibration_counter_x = 0 # Counter till robot is able to recalibrate
+        self.recalibration_counter_y = 0 # Counter till robot is able to recalibrate
+
         # Cell state
         self.cell = None          
         self.cell_setpoint = None 
@@ -39,8 +43,7 @@ class RobotState:
         self.pathfinding_path = []
 
         # Target Cells
-        self.first_target_cell = None
-        self.second_target_cell = None
+        self.target_cells = {}
         self.target_cell_path = []
 
         # Movement Model 
@@ -84,13 +87,13 @@ class RobotState:
         }
 
         # Print measures
-        # print(f"Previous Position: {self.previous_position}")
-        # print(f"GPS Position: ({robot.measures.x}, {robot.measures.y})")
-        # print(f"Current Position: {self.current_position}")
-        # print(f"Target Position: {self.position_setpoint}")
-        # print(f"Previous Direction: {self.previous_direction}")
-        # print(f"Current Direction: {self.current_direction}")
-        # print(f"Target Direction: {self.direction_setpoint}")
+        #print(f"Previous Position: {self.previous_position}")
+        #print(f"GPS Position: ({robot.measures.x}, {robot.measures.y})")
+        #print(f"Current Position: {self.current_position}")
+        #print(f"Target Position: {self.position_setpoint}")
+        #print(f"Previous Direction: {self.previous_direction}")
+        #print(f"Current Direction: {self.current_direction}")
+        #print(f"Target Direction: {self.direction_setpoint}")
 
         # TODO: remove this
         #self.current_position = (robot.measures.x - robot.realGPS[0], robot.measures.y - robot.realGPS[1])

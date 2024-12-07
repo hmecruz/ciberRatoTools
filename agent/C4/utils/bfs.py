@@ -77,4 +77,5 @@ def reconstruct_path(current_cell, came_from):
         current_cell = came_from[current_cell]
         total_path.append(current_cell)
     total_path.reverse()
+    total_path.pop(0)
     return total_path

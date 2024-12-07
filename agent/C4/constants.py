@@ -22,21 +22,29 @@ MIN_POW = -0.15
 # Sampling Time
 TIME_STEP = 0.005
 
-# Throttle PD Controller values
+# Throttle PD Controller Values
 KP = 0.35 
 KD = 0 
+
+# Speed Steering PD Controller Values
+KPSS = 0.1
+KDSS = 0.01
 
 # Steering PD Controller Values
 KPS = 0.02 
 KDS = 0.00003 
 
 # Recalibration PD Controller Values
-KPR = 0.035
-KDR = 0 
+KPR = 0.008
+KDR = 0
 
 # Maze Size
 CELLROWS=7
 CELLCOLS=14
+
+# Recalibration after n moves
+RECALIBRATION_PERIOD_X = 4 
+RECALIBRATION_PERIOD_Y = 4
 
 
 def vector_to_direction(vector):
