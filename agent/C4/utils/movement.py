@@ -175,6 +175,6 @@ class MovementModel:
             filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
 
-        print(f"MM Direction: {self.compass_movement_model}")
-        print(f"Noise Direction: {compass}")
-        print(f"Filtered Direction: {filtered_compass}")
+        # print(f"MM Direction: {self.compass_movement_model}")
+        # print(f"Noise Direction: {compass}")
+        # print(f"Filtered Direction: {filtered_compass}")

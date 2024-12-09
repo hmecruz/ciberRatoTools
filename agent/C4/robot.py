@@ -8,6 +8,7 @@ from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 from utils.sensor_reliability import *
 from utils.MultiColumnData import *
+import itertools
 
 
 import signal
@@ -23,8 +24,11 @@ DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     DATA_X.plot_all_columns()
+    plt.savefig("./plot/x_plot.png", format='png', dpi=300)
     DATA_Y.plot_all_columns()
+    plt.savefig("./plot/y_plot.png", format='png', dpi=300)
     DATA_COMPASS.plot_all_columns()
+    plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
     plt.show()
     
     # Perform any cleanup here
@@ -79,7 +83,7 @@ class Robot(CRobLinkAngs):
             # Target Cells
             has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
 
-            if has_target_cell and self.is_next_cell and target_id >= 0:
+            if has_target_cell and self.is_next_cell and target_id > 0:
                 self.robot.target_cells[target_id] = self.robot.cell
                 self.is_next_cell = False
                 print(f"Target Cell: {self.robot.target_cells}")
@@ -136,7 +140,7 @@ class Robot(CRobLinkAngs):
                 continue
                 
 
-            if len(self.robot.target_cells) >= int(self.nBeacons):
+            if len(self.robot.target_cells) >= int(self.nBeacons) - 1:
                 if self.compute_target_cell_path():
                     sys.exit(0)
 
@@ -211,30 +215,35 @@ class Robot(CRobLinkAngs):
 
         # TODO: do all combinations and check which is shortest
 
+        path_combinations = list(itertools.permutations(self.robot.target_cells.keys(), len(self.robot.target_cells)))
+        
+        shortest_path = None
 
+        for combination in path_combinations:
+            # TODO: missing how do i know how many cells are going to be visited
+            path1 = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
+            path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
+            if len(path1) != len(path1_unvisited): return False
 
-    
-        path1 = shortest_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
-        path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.first_target_cell, self.maze)
-        print(len(path1))
-        print(len(path1_unvisited))
-        if len(path1) != len(path1_unvisited): return False
+            for i in range(1, len(combination)):
+                path2 = shortest_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
+                path2_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
+                if len(path2) != len(path2_unvisited): return False
+                path1.extend(path2[1:-1])
+            
+            path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
+            path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
 
-        path2 = shortest_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze)
-        path2_unvisited = shortest_unvisited_path_bfs(self.robot.first_target_cell, self.robot.second_target_cell, self.maze)
-        print(len(path2))
-        print(len(path2_unvisited))
-        if len(path2) != len(path2_unvisited): return False
+            print(f"Path1: {path1}")
+            print(f"Path2: {path1}")
+            print(f"Path3: {path3}")
 
-        path3 = shortest_path_bfs(self.robot.second_target_cell, initial_cell, self.maze)
-        path3_unvisited = shortest_unvisited_path_bfs(self.robot.second_target_cell, initial_cell, self.maze)
-        print(len(path3))
-        print(len(path3_unvisited))
-        if len(path3) != len(path3_unvisited): return False
+            if len(path3) != len(path3_unvisited): return False
+            path1.extend(path3)
 
-        self.robot.target_cell_path.extend(path1)
-        self.robot.target_cell_path.extend(path2[1:-1])
-        self.robot.target_cell_path.extend(path3)
+            if len(shortest_path) > len(path1) or not shortest_path:
+                shortest_path = path1
+            
 
         for cell in self.robot.target_cell_path:
             x, y = self.maze.get_cell_index(cell)
