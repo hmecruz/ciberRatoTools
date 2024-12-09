@@ -29,7 +29,7 @@ def signal_handler(sig, frame):
     plt.savefig("./plot/y_plot.png", format='png', dpi=300)
     DATA_COMPASS.plot_all_columns()
     plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
-    plt.show()
+    #plt.show()
     
     # Perform any cleanup here
     sys.exit(0)

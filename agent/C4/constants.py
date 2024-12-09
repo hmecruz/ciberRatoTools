@@ -43,8 +43,8 @@ CELLROWS=7
 CELLCOLS=14
 
 # Recalibration after n moves
-RECALIBRATION_PERIOD_X = 3 
-RECALIBRATION_PERIOD_Y = 3
+RECALIBRATION_PERIOD_X = 15
+RECALIBRATION_PERIOD_Y = 15
 
 
 def vector_to_direction(vector):
