@@ -108,7 +108,7 @@ class AngleKalmanFilter:
         self.Q = np.array([[0, 0, 0]])
 
         # Measurement noise covariance (give more weight to measurements)
-        self.R = np.array([[4]])  # 2²
+        self.R = np.array([[0.000030864]])  # 2² or (2/360)² = 0.000030864
 
         # Initial state uncertainty
         self.P = np.eye(3) * 1e-3
@@ -123,7 +123,7 @@ class AngleKalmanFilter:
 
         # self.Q is equal to (x * 0.015)^2
         self.Q = np.array([
-            [0.015**2,0,0],
+            [0,0,0],
             [0,(x[1, 0] * 0.015)**2,0],
             [0,0,(x[2, 0] * 0.015)**2]
         ])

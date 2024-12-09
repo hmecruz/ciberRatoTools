@@ -139,13 +139,24 @@ class MovementModel:
             self.robot_state.current_direction, rotational_vel
         )
 
-        is_reflected = False
+
+        # TODO: this might be wrong, and probably why the 0 because in left and right are at the same distance then it nullifies it
+        # I think now it's right, check it
+
+        must_reflect =  (self.compass_movement_model < -90 or self.compass_movement_model > 90) and (compass < -90 or compass > 90)
+
+        if must_reflect:
+            print(f"MM:\t{self.compass_movement_model}")
+            print(f"Co:\t{compass}")
+
+            self.compass_movement_model = reflect_angle(self.compass_movement_model)
+            compass = reflect_angle(compass)
+
+
 
         if not self.angle_kalman_filter.firstTime:
-            if self.compass_movement_model < -90 or self.compass_movement_model > 90:
+            if must_reflect:
                 self.compass_movement_model = reflect_angle(self.compass_movement_model)
-                is_reflected = True
-                
 
             self.angle_kalman_filter.predict(
                 np.array([[self.compass_movement_model], [self.out_left], [self.out_right]]),
@@ -153,10 +164,6 @@ class MovementModel:
             )
         else:
             self.angle_kalman_filter.firstTime = False
-
-        if compass < -90 or compass > 90:
-            compass = reflect_angle(compass)
-            is_reflected = True
 
         self.angle_kalman_filter.update(np.array([[compass]]))
         
@@ -166,9 +173,10 @@ class MovementModel:
         filtered_compass = int(np.round(filtered_compass[0]))
 
 
-        if is_reflected:
+        if must_reflect:
             filtered_compass = normalize_angle(filtered_compass)
             self.compass_movement_model = normalize_angle(self.compass_movement_model)
+        
 
         # Update direction
         self.robot_state.current_direction = (
