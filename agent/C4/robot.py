@@ -41,7 +41,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 #############################
 
-DEBUG = False
+DEBUG = True
 
 
 class Robot(CRobLinkAngs):
@@ -62,6 +62,8 @@ class Robot(CRobLinkAngs):
         self.ground_reliability = SensorReliabilty(window_size=5)
 
         self.is_next_cell = False
+
+        self.endLap = False
 
 
     def run(self):
@@ -140,10 +142,7 @@ class Robot(CRobLinkAngs):
                 
 
             if len(self.robot.target_cells) >= int(self.nBeacons) - 1:
-                if len(self.robot.pathfinding_path) <= 0: 
-                    self.compute_target_cell_path()
                 if len(self.robot.pathfinding_path) <= 0 and self.robot.cell == self.maze.get_cell(self.robot.initial_position): 
-
                     if DEBUG:
                         DATA_X.plot_all_columns()
                         plt.savefig("./plot/x_plot.png", format='png', dpi=300)
@@ -152,8 +151,14 @@ class Robot(CRobLinkAngs):
                         DATA_COMPASS.plot_all_columns()
                         plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
                         plt.show()
-
+                    
+                    print("End of Lap.")
+                    self.driveMotors(0, 0)
                     sys.exit(0)
+                
+                if len(self.robot.pathfinding_path) <= 0: 
+                    self.compute_target_cell_path()
+                    
 
 
             # Compute next position
@@ -168,7 +173,7 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_counter_x += 1
             self.robot.recalibration_counter_y += 1
         
-        self.compute_target_cell_path()
+        #self.compute_target_cell_path()
     
 
     def get_next_move(self):
@@ -233,11 +238,14 @@ class Robot(CRobLinkAngs):
             path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
             if len(path1) != len(path1_unvisited): return False
 
+            # print all cell from path1 using get_middle_position
+
             for i in range(1, len(combination)):
                 path2 = shortest_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
                 path2_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
                 if len(path2) != len(path2_unvisited): return False
-                path1.extend(path2[1:-1])
+
+                path1.extend(path2)
             
             path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
             path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
@@ -250,16 +258,14 @@ class Robot(CRobLinkAngs):
             if len(self.robot.target_cell_path) > len(path1):
                 self.robot.target_cell_path = path1
 
-            print(f"T SP:\t{len(path1)}")
-        
-        print(f"F SP:\t{len(self.robot.target_cell_path)}")
+            
+        if DEBUG:
+            print(f"SP:\t{len(self.robot.target_cell_path)}")
 
-        goToStartPath = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-        goToStartPath_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-        if len(goToStartPath) != len(goToStartPath_unvisited): return False
+        goToStartPath = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
 
         finalPath = []
-        finalPath.extend(finalPath)
+        finalPath.extend(goToStartPath)
         finalPath.extend(self.robot.target_cell_path)
         
         self.robot.pathfinding_path = finalPath
@@ -269,6 +275,7 @@ class Robot(CRobLinkAngs):
             
             # Write the final map to a text file
             with open(self.outfile, "w") as file:
+                file.write("0 0 #0\n")
                 for cell in self.robot.target_cell_path:
                     x, y = self.maze.get_cell_index(cell)
                     x = int(x)
