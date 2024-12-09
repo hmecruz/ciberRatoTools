@@ -41,7 +41,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 #############################
 
-DEBUG = True
+DEBUG = False
 
 
 class Robot(CRobLinkAngs):
@@ -258,9 +258,6 @@ class Robot(CRobLinkAngs):
             if len(self.robot.target_cell_path) > len(path1):
                 self.robot.target_cell_path = path1
 
-            
-        if DEBUG:
-            print(f"SP:\t{len(self.robot.target_cell_path)}")
 
         goToStartPath = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
 
@@ -269,6 +266,15 @@ class Robot(CRobLinkAngs):
         finalPath.extend(self.robot.target_cell_path)
         
         self.robot.pathfinding_path = finalPath
+
+        if DEBUG:
+            print(f"SP:\t{len(self.robot.target_cell_path)}")
+
+            p = []
+            for cell in self.robot.pathfinding_path:
+                p.append(cell.get_middle_position())
+            print(p)
+
 
         for cell in self.robot.target_cell_path:
             x, y = self.maze.get_cell_index(cell)
