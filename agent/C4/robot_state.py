@@ -44,7 +44,7 @@ class RobotState:
 
         # Target Cells
         self.target_cells = {}
-        self.target_cell_path = []
+        self.target_cell_path = None
 
         # Movement Model 
         self.movement_model = MovementModel(self)
