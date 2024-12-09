@@ -248,17 +248,14 @@ class Robot(CRobLinkAngs):
         
         print(f"F SP:\t{len(self.robot.target_cell_path)}")
 
-        goToStartPath = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-        goToStartPath_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-        if len(goToStartPath) != len(goToStartPath_unvisited): return False
-
-        finalPath = []
-        finalPath.extend(finalPath)
-        finalPath.extend(self.robot.target_cell_path)
+        start_path = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
         
-        self.robot.pathfinding_path = finalPath
+        final_path = []
+        final_path.extend(start_path)
+        final_path.extend(self.robot.target_cell_path)
+        
+        self.robot.pathfinding_path = final_path
             
-
         for cell in self.robot.target_cell_path:
             x, y = self.maze.get_cell_index(cell)
             
