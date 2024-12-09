@@ -75,8 +75,8 @@ class Robot(CRobLinkAngs):
 
 
             # TODO: remove this
-            DATA_X.add_row([self.realGPS[0] + self.robot.current_position[0], self.measures.x])
-            DATA_Y.add_row([self.realGPS[1] + self.robot.current_position[1], self.measures.y])
+            DATA_X.add_row([self.measures.x,self.realGPS[0] + self.robot.current_position[0]])
+            DATA_Y.add_row([self.measures.y, self.realGPS[1] + self.robot.current_position[1]])
             DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
 
 
@@ -141,7 +141,9 @@ class Robot(CRobLinkAngs):
                 
 
             if len(self.robot.target_cells) >= int(self.nBeacons) - 1:
-                if self.compute_target_cell_path():
+                if len(self.robot.pathfinding_path) <= 0: 
+                    self.compute_target_cell_path()
+                if len(self.robot.pathfinding_path) <= 0 and self.robot.cell == self.maze.get_cell(self.robot.initial_position): 
                     sys.exit(0)
 
 
@@ -217,7 +219,7 @@ class Robot(CRobLinkAngs):
 
         path_combinations = list(itertools.permutations(self.robot.target_cells.keys(), len(self.robot.target_cells)))
         
-        shortest_path = None
+        self.robot.target_cell_path = None
 
         for combination in path_combinations:
             # TODO: missing how do i know how many cells are going to be visited
@@ -233,16 +235,28 @@ class Robot(CRobLinkAngs):
             
             path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
             path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
-
-            print(f"Path1: {path1}")
-            print(f"Path2: {path1}")
-            print(f"Path3: {path3}")
-
             if len(path3) != len(path3_unvisited): return False
             path1.extend(path3)
 
-            if len(shortest_path) > len(path1) or not shortest_path:
-                shortest_path = path1
+            if not self.robot.target_cell_path:
+                self.robot.target_cell_path = path1
+
+            if len(self.robot.target_cell_path) > len(path1):
+                self.robot.target_cell_path = path1
+
+            print(f"T SP:\t{len(path1)}")
+        
+        print(f"F SP:\t{len(self.robot.target_cell_path)}")
+
+        goToStartPath = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
+        goToStartPath_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
+        if len(goToStartPath) != len(goToStartPath_unvisited): return False
+
+        finalPath = []
+        finalPath.extend(finalPath)
+        finalPath.extend(self.robot.target_cell_path)
+        
+        self.robot.pathfinding_path = finalPath
             
 
         for cell in self.robot.target_cell_path:
