@@ -11,9 +11,6 @@ from utils.MultiColumnData import *
 import itertools
 
 
-
-
-
 #############################
 
 DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
@@ -59,11 +56,10 @@ class Robot(CRobLinkAngs):
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
         self.sensor_reliability  = SensorReliabilty(window_size=5)
-        self.ground_reliability = SensorReliabilty(window_size=5)
+        self.ground_reliability = SensorReliabilty(window_size=3)
 
-        self.is_next_cell = False
-
-        self.endLap = False
+        self.beacon_detected = False
+        self.endLap = False 
 
 
     def run(self):
@@ -86,13 +82,14 @@ class Robot(CRobLinkAngs):
                 DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
                 print(f"Target Cell: {self.robot.target_cells}")
 
-
+            
             # Target Cells
             has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
 
-            if has_target_cell and self.is_next_cell and target_id > 0:
+            if not self.beacon_detected and has_target_cell and target_id > 0:
                 self.robot.target_cells[target_id] = self.robot.cell
-                self.is_next_cell = False
+                self.beacon_detected = True
+                
 
             # Steering Mode
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
@@ -123,7 +120,6 @@ class Robot(CRobLinkAngs):
 
             # Robot reach a new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
-            self.is_next_cell = True
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
 
@@ -172,6 +168,13 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_complete = False
             self.robot.recalibration_counter_x += 1
             self.robot.recalibration_counter_y += 1
+
+            self.ground_reliability.values.clear() # Clear beacon 
+            self.beacon_detected = False
+
+            target_positions = list(self.robot.target_cells.values())
+            print([cell.get_middle_position() for cell in target_positions])
+            
         
         #self.compute_target_cell_path()
     
