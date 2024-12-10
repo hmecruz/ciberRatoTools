@@ -11,9 +11,6 @@ from utils.MultiColumnData import *
 import itertools
 
 
-
-
-
 #############################
 
 DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
@@ -59,11 +56,10 @@ class Robot(CRobLinkAngs):
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
         self.sensor_reliability  = SensorReliabilty(window_size=5)
-        self.ground_reliability = SensorReliabilty(window_size=5)
+        self.ground_reliability = SensorReliabilty(window_size=3)
 
-        self.is_next_cell = False
-
-        self.endLap = False
+        self.beacon_detection_complete = False 
+        self.endLap = False 
 
 
     def run(self):
@@ -86,13 +82,14 @@ class Robot(CRobLinkAngs):
                 DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
                 print(f"Target Cell: {self.robot.target_cells}")
 
-
+            
             # Target Cells
             has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
-
-            if has_target_cell and self.is_next_cell and target_id > 0:
+            if not self.beacon_detection_complete and has_target_cell and target_id > 0:
                 self.robot.target_cells[target_id] = self.robot.cell
-                self.is_next_cell = False
+            if len(self.ground_reliability.values) >= self.ground_reliability.window_size:
+                self.beacon_detection_complete = True
+                
 
             # Steering Mode
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
@@ -123,7 +120,6 @@ class Robot(CRobLinkAngs):
 
             # Robot reach a new position
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
-            self.is_next_cell = True
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
 
@@ -172,6 +168,13 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_complete = False
             self.robot.recalibration_counter_x += 1
             self.robot.recalibration_counter_y += 1
+
+            self.ground_reliability.values.clear() # Clear beacon 
+            self.beacon_detection_complete = False
+
+            target_positions = list(self.robot.target_cells.values())
+            print([cell.get_middle_position() for cell in target_positions])
+            
         
         #self.compute_target_cell_path()
     
@@ -226,75 +229,108 @@ class Robot(CRobLinkAngs):
         self.robot.direction_setpoint = vector_to_direction(move_vector)
                 
 
-    def compute_target_cell_path(self):    
+    def compute_target_cell_path(self):
         initial_cell = self.maze.get_cell(self.robot.initial_position)
+        target_cells = self.robot.target_cells
+        target_positions = list(target_cells.keys())
 
-        path_combinations = list(itertools.permutations(self.robot.target_cells.keys(), len(self.robot.target_cells)))
-        
-        self.robot.target_cell_path = None
+        # Cache for shortest path computations
+        path_cache = {}
+
+        def get_shortest_path(cell_a, cell_b):
+            # Check cache first
+            key = (cell_a, cell_b)
+            if key in path_cache:
+                print(f"Cache hit for: {key}")
+                return path_cache[key]
+            print(f"Cache miss for: {key}")
+            path = shortest_path_bfs(cell_a, cell_b, self.maze)
+            path_cache[key] = path
+            return path
+
+        def is_valid_path(cell_a, cell_b, path):
+            unvisited_path = shortest_unvisited_path_bfs(cell_a, cell_b, self.maze)
+            print(f"Path Segment: {[cell.get_middle_position() for cell in path]}")
+            print(f"Unvisited Path: {[cell.get_middle_position() for cell in unvisited_path]}")
+            return len(path) == len(unvisited_path)
+
+        # Generate all permutations of target positions
+        path_combinations = list(itertools.permutations(target_positions, len(target_positions)))
+        shortest_total_path = None
+        shortest_total_path_length = float('inf')
+
+        print(f"Target Positions: {target_positions}")
+        print(f"Path Combinations: {path_combinations}")
 
         for combination in path_combinations:
-            path1 = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-            path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-            if len(path1) != len(path1_unvisited): return False
+            print(f"Processing Combination: {combination}")
+            current_path = []
 
-            # print all cell from path1 using get_middle_position
+            # Path from initial cell to the first target
+            path_segment = get_shortest_path(initial_cell, target_cells[combination[0]])
+            if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
+                print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
+                return False
+            current_path.extend(path_segment)
 
+            # Path between intermediate targets
             for i in range(1, len(combination)):
-                path2 = shortest_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
-                path2_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
-                if len(path2) != len(path2_unvisited): return False
+                path_segment = get_shortest_path(target_cells[combination[i - 1]], target_cells[combination[i]])
+                if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
+                    print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
+                    return False
+                current_path.extend(path_segment)
 
-                path1.extend(path2)
-            
-            path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
-            path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
-            if len(path3) != len(path3_unvisited): return False
-            path1.extend(path3)
+            # Path from the last target back to the initial cell
+            path_segment = get_shortest_path(target_cells[combination[-1]], initial_cell)
+            if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
+                print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
+                return False
+            current_path.extend(path_segment)
 
-            if not self.robot.target_cell_path:
-                self.robot.target_cell_path = path1
+            # Check if the current path is the shortest
+            if len(current_path) < shortest_total_path_length:
+                print(f"New shortest path found: Length {len(current_path)}")
+                shortest_total_path = current_path
+                shortest_total_path_length = len(current_path)
 
-            if len(self.robot.target_cell_path) > len(path1):
-                self.robot.target_cell_path = path1
+        # If no valid path found, return failure
+        if not shortest_total_path:
+            print("No valid path found!")
+            return False
 
+        # Path from the robot's current position to the initial cell
+        start_path = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
 
-        goToStartPath = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
+        final_path = []
+        final_path.extend(start_path)
+        final_path.extend(shortest_total_path)
 
-        finalPath = []
-        finalPath.extend(goToStartPath)
-        finalPath.extend(self.robot.target_cell_path)
-        
-        self.robot.pathfinding_path = finalPath
+        self.robot.pathfinding_path = final_path
 
-        if DEBUG:
-            print(f"SP:\t{len(self.robot.target_cell_path)}")
+        # Debug: Print the final path length
+        print(f"Final Path Length: {len(final_path)}")
+        print(f"Final Path: {[cell.get_middle_position() for cell in final_path]}")
 
-            p = []
-            for cell in self.robot.pathfinding_path:
-                p.append(cell.get_middle_position())
-            print(p)
+        # Write the final map to a text file
+        with open(self.outfile, "w") as file:
+            file.write("0 0 #0\n")
+            for cell in shortest_total_path:
+                x, y = self.maze.get_cell_index(cell)
+                x = int(x)
+                y = int(y)
 
-
-        for cell in self.robot.target_cell_path:
-            x, y = self.maze.get_cell_index(cell)
-            
-            # Write the final map to a text file
-            with open(self.outfile, "w") as file:
-                file.write("0 0 #0\n")
-                for cell in self.robot.target_cell_path:
-                    x, y = self.maze.get_cell_index(cell)
-                    x = int(x)
-                    y = int(y)
-
-                    for key,value in self.robot.target_cells.items():
-                        if value == cell:
-                            file.write(f"{x} {y} #{int(key)}\n")
-                            break
-
+                # Check if the current cell is a target cell
+                for key, value in target_cells.items():
+                    if value == cell:
+                        file.write(f"{x} {y} #{int(key)}\n")
+                        break  # Skip the general write since the cell was written as a target
+                else:
+                    # Only executed if no target cell match was found
                     file.write(f"{x} {y}\n")
-                
+
         return True
+
             
     
     def steering(self):
