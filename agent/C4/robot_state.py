@@ -10,7 +10,7 @@ class RobotState:
         # Robot Position
         self.initial_position = None
         self.previous_position = None
-        self.current_position = (0, 0)
+        self.current_position = None
         self.position_setpoint = None
 
         # Robot direction
@@ -48,7 +48,7 @@ class RobotState:
 
     def initialize(self, robot):
         robot.readSensors()  # Read sensors
-        self.initial_position = (0, 0)
+        #self.initial_position = (0, 0)
 
         bottom_left = (self.initial_position[0] - 1, self.initial_position[1] - 1)
         self.cell = Cell(bottom_left)

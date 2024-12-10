@@ -84,13 +84,15 @@ class Cell:
         return (bl_x <= x < tr_x) and (bl_y <= y < tr_y)
 
 
-
 class MazeMap:
-    def __init__(self, rows: int, cols: int):
+    def __init__(self, rows: int, cols: int, outfile: str = "maze.map"):
         self.rows = rows
         self.cols = cols
         self.cell_size = 2 # 2 coordinates
         self.map = self._create_map()
+        self.robot_initial_position = (cols*2, rows*2) # Normalize initial robot position
+        self.outfile = outfile
+
         
     def _create_map(self):
         """Creates a 4x larger map representation with the robot starting at the center (0, 0)"""        
@@ -100,9 +102,45 @@ class MazeMap:
                 maze_map[(col, row)] = None # col --> x | row --> y
         return maze_map
     
+    
+    def print_map(self, beacons: dict[int, Cell]):
+        map_representation = [[" " for _ in range(self.cols * self.cell_size * 2 - 1)] for _ in range(self.rows * self.cell_size * 2 - 1)]
+    
+        # map[Linhas][Colunas]
+        for pos, cell in self.map.items():
+            col, row = pos # col --> x, linha --> y 
+            if cell is None: continue
+            #print(pos)
+            #print(f"({col}, {row})") # x, y
+            #print(cell.top_wall)
+            #print(cell.left_wall)
+            #print(cell.right_wall)
+            #print(cell.bottom_wall)
+
+            map_representation[row - 1][col - 1] = "X"
+            map_representation[row - 1][col] = "|" if cell.right_wall else "X"
+            map_representation[row - 1][col - 2] = "|" if cell.left_wall else "X"
+            map_representation[row - 2][col - 1] = "-" if cell.top_wall else "X"
+            map_representation[row][col - 1] = "-" if cell.bottom_wall else "X"
+        
+        for id, cell in beacons.items():
+            col, row = cell.get_middle_position()
+            map_representation[-row][col - 1] = str(int(id))
+
+        map_representation[self.rows*self.cell_size - 1][self.cols*self.cell_size - 1] = "0"
+
+        # Write the final map to a text file
+        with open(self.outfile, "w") as file:
+            for line in map_representation:
+                file.write("".join(line) + "\n")
+    
 
     def add_cell_map(self, cell, index: tuple):
         """Add cell to map"""
+        index = (
+            index[0] + self.robot_initial_position[0],
+            -index[1] + self.robot_initial_position[1]
+        )
         self.map[(index)] = cell
         cell.mark_visited()
 
@@ -119,19 +157,21 @@ class MazeMap:
                 return cell
         return None
     
-    def get_cell_index(self, cell:Cell):
+    def get_cell_index(self, cell: Cell):
         for key, value in self.map.items():
             if value is None: continue
             if cell == value:
                 return key
         return None
 
+
     def get_visited_cells(self):
         """Returns a list of all visited cells."""
         visited_cells = [cell for cell in self.map.values() if cell and cell.is_visited()]
         return visited_cells
     
-    def has_neighbours_to_explore(self, cell:Cell):
+    
+    def has_neighbours_to_explore(self, cell: Cell):
         """Check if the given cell has neighbours to explore."""
         cell_middle_position = cell.get_middle_position() 
         vectors = [MOVE_NORTH, MOVE_WEST, MOVE_EAST, MOVE_SOUTH]
@@ -146,7 +186,8 @@ class MazeMap:
                     return True
         return False
     
-    def get_neighbours(self, cell:Cell):
+    
+    def get_neighbours(self, cell: Cell):
         """Return a list of known neighbour cells"""
         neighbour_cells = []
 

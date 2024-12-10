@@ -49,6 +49,7 @@ class Robot(CRobLinkAngs):
         
         self.robot = RobotState()  # Encapsulates robot state
         self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
+        self.robot.current_position = self.robot.initial_position = self.maze.robot_initial_position
 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
         self.speed_steering_pd_controller = PDController(kp=KPSS, kd=KDSS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle Steering
@@ -150,7 +151,7 @@ class Robot(CRobLinkAngs):
                     
                     print("End of Lap.")
                     self.driveMotors(0, 0)
-                    sys.exit(0)
+                    break
                 
                 if len(self.robot.pathfinding_path) <= 0: 
                     self.compute_target_cell_path()
@@ -172,11 +173,11 @@ class Robot(CRobLinkAngs):
             self.ground_reliability.values.clear() # Clear beacon 
             self.beacon_detection_complete = False
 
-            target_positions = list(self.robot.target_cells.values())
-            print([cell.get_middle_position() for cell in target_positions])
+            #target_positions = list(self.robot.target_cells.values())
+            #print([cell.get_middle_position() for cell in target_positions])
             
-        
-        #self.compute_target_cell_path()
+        self.maze.print_map(self.robot.target_cells) 
+        #self.compute_target_cell_path()    
     
 
     def get_next_move(self):
@@ -241,17 +242,17 @@ class Robot(CRobLinkAngs):
             # Check cache first
             key = (cell_a, cell_b)
             if key in path_cache:
-                print(f"Cache hit for: {key}")
+                #print(f"Cache hit for: {key}")
                 return path_cache[key]
-            print(f"Cache miss for: {key}")
+            #print(f"Cache miss for: {key}")
             path = shortest_path_bfs(cell_a, cell_b, self.maze)
             path_cache[key] = path
             return path
 
         def is_valid_path(cell_a, cell_b, path):
             unvisited_path = shortest_unvisited_path_bfs(cell_a, cell_b, self.maze)
-            print(f"Path Segment: {[cell.get_middle_position() for cell in path]}")
-            print(f"Unvisited Path: {[cell.get_middle_position() for cell in unvisited_path]}")
+            #print(f"Path Segment: {[cell.get_middle_position() for cell in path]}")
+            #print(f"Unvisited Path: {[cell.get_middle_position() for cell in unvisited_path]}")
             return len(path) == len(unvisited_path)
 
         # Generate all permutations of target positions
@@ -259,17 +260,17 @@ class Robot(CRobLinkAngs):
         shortest_total_path = None
         shortest_total_path_length = float('inf')
 
-        print(f"Target Positions: {target_positions}")
-        print(f"Path Combinations: {path_combinations}")
+        #print(f"Target Positions: {target_positions}")
+        #print(f"Path Combinations: {path_combinations}")
 
         for combination in path_combinations:
-            print(f"Processing Combination: {combination}")
+            #print(f"Processing Combination: {combination}")
             current_path = []
 
             # Path from initial cell to the first target
             path_segment = get_shortest_path(initial_cell, target_cells[combination[0]])
             if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
-                print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
+                #print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
                 return False
             current_path.extend(path_segment)
 
@@ -277,26 +278,26 @@ class Robot(CRobLinkAngs):
             for i in range(1, len(combination)):
                 path_segment = get_shortest_path(target_cells[combination[i - 1]], target_cells[combination[i]])
                 if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
-                    print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
+                    #print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
                     return False
                 current_path.extend(path_segment)
 
             # Path from the last target back to the initial cell
             path_segment = get_shortest_path(target_cells[combination[-1]], initial_cell)
             if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
-                print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
+                #print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
                 return False
             current_path.extend(path_segment)
 
             # Check if the current path is the shortest
             if len(current_path) < shortest_total_path_length:
-                print(f"New shortest path found: Length {len(current_path)}")
+                #print(f"New shortest path found: Length {len(current_path)}")
                 shortest_total_path = current_path
                 shortest_total_path_length = len(current_path)
 
         # If no valid path found, return failure
         if not shortest_total_path:
-            print("No valid path found!")
+            #print("No valid path found!")
             return False
 
         # Path from the robot's current position to the initial cell
@@ -309,8 +310,8 @@ class Robot(CRobLinkAngs):
         self.robot.pathfinding_path = final_path
 
         # Debug: Print the final path length
-        print(f"Final Path Length: {len(final_path)}")
-        print(f"Final Path: {[cell.get_middle_position() for cell in final_path]}")
+        #print(f"Final Path Length: {len(final_path)}")
+        #print(f"Final Path: {[cell.get_middle_position() for cell in final_path]}")
 
         # Write the final map to a text file
         with open(self.outfile, "w") as file:
