@@ -32,8 +32,3 @@ class NoiseFilter:
         self.values.append(filtered)
 
         return filtered
-
-    # def update(self,current_value):
-    #     self.values.append(current_value)
-    #     filtered_value = sum(self.values) / len(self.values)
-    #     return round(filtered_value,1)

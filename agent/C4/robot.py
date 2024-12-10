@@ -60,7 +60,6 @@ class Robot(CRobLinkAngs):
         self.ground_reliability = SensorReliabilty(window_size=3)
 
         self.beacon_detection_complete = False 
-        self.endLap = False 
 
 
     def run(self):
@@ -146,19 +145,20 @@ class Robot(CRobLinkAngs):
                             break
                         else: 
                             self.robot.exploration_complete = True 
-                            self.compute_beacon_path()
+                            self.compute_beacon_path() # Planning
                     else: continue
-            
+
+            # Recalibration 
             self.robot.recalibration_complete = False
             self.robot.recalibration_counter_x += 1
             self.robot.recalibration_counter_y += 1
 
+            # Beacons
             self.ground_reliability.values.clear() # Clear beacon 
             self.beacon_detection_complete = False
 
-            #target_positions = list(self.robot.target_cells.values())
-            #print([cell.get_middle_position() for cell in target_positions])
-            
+
+        # Mapping     
         self.maze.print_map(self.robot.beacons)  
     
 
@@ -224,17 +224,13 @@ class Robot(CRobLinkAngs):
             # Check cache first
             key = (cell_a, cell_b)
             if key in path_cache:
-                #print(f"Cache hit for: {key}")
                 return path_cache[key]
-            #print(f"Cache miss for: {key}")
             path = shortest_path_bfs(cell_a, cell_b, self.maze)
             path_cache[key] = path
             return path
 
         def is_valid_path(cell_a, cell_b, path):
             unvisited_path = shortest_unvisited_path_bfs(cell_a, cell_b, self.maze)
-            #print(f"Path Segment: {[cell.get_middle_position() for cell in path]}")
-            #print(f"Unvisited Path: {[cell.get_middle_position() for cell in unvisited_path]}")
             return len(path) == len(unvisited_path)
 
         # Generate all permutations of target positions
@@ -242,11 +238,7 @@ class Robot(CRobLinkAngs):
         shortest_total_path = None
         shortest_total_path_length = float('inf')
 
-        #print(f"Target Positions: {target_positions}")
-        #print(f"Path Combinations: {path_combinations}")
-
         for combination in path_combinations:
-            #print(f"Processing Combination: {combination}")
             current_path = []
 
             # Path from initial cell to the first target
@@ -273,13 +265,13 @@ class Robot(CRobLinkAngs):
 
             # Check if the current path is the shortest
             if len(current_path) < shortest_total_path_length:
-                #print(f"New shortest path found: Length {len(current_path)}")
                 shortest_total_path = current_path
                 shortest_total_path_length = len(current_path)
 
+        
         # If no valid path found, return failure
         if not shortest_total_path:
-            #print("No valid path found!")
+            print("No valid path found!")
             return False
 
         # Path from the robot's current position to the initial cell
@@ -291,10 +283,7 @@ class Robot(CRobLinkAngs):
 
         self.robot.pathfinding_path = final_path
 
-        # Debug: Print the final path length
-        #print(f"Final Path Length: {len(final_path)}")
-        #print(f"Final Path: {[cell.get_middle_position() for cell in final_path]}")
-
+       
         # Write the final map to a text file
         with open(self.outfile, "w") as file:
             file.write("0 0 #0\n")
@@ -315,7 +304,6 @@ class Robot(CRobLinkAngs):
         return True
 
             
-    
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
             (
@@ -394,8 +382,6 @@ class Robot(CRobLinkAngs):
 
         self.driveMotors(left_motor_power, right_motor_power)    
 
-
-
         if DEBUG:
             if left_motor_power < right_motor_power:
                print("Esquerda")
@@ -447,7 +433,6 @@ class Robot(CRobLinkAngs):
         # Center of cell - Wall thickness - distance from the wall
         distance = (0.5 - 0.1) - (1 / distance)
         
-
         if dir ==  EAST:
             self.robot.current_position = (round(self.robot.position_setpoint[0]+distance,2), self.robot.current_position[1]) 
         elif dir == WEST:
