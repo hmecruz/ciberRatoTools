@@ -81,13 +81,13 @@ class Robot(CRobLinkAngs):
                 DATA_X.add_row([self.measures.x,self.realGPS[0] + self.robot.current_position[0]])
                 DATA_Y.add_row([self.measures.y, self.realGPS[1] + self.robot.current_position[1]])
                 DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
-                print(f"Target Cell: {self.robot.target_cells}")
+                print(f"Beacon: {self.robot.beacons}")
 
             
             # Target Cells
-            has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
-            if not self.beacon_detection_complete and has_target_cell and target_id > 0:
-                self.robot.target_cells[target_id] = self.robot.cell
+            is_beacon, beacon_id = self.ground_reliability.update(self.measures.ground)
+            if not self.beacon_detection_complete and is_beacon and beacon_id > 0:
+                self.robot.beacons[beacon_id] = self.robot.cell
             if len(self.ground_reliability.values) >= self.ground_reliability.window_size:
                 self.beacon_detection_complete = True
                 
@@ -134,7 +134,7 @@ class Robot(CRobLinkAngs):
                 if closest_direction(self.robot.current_direction) in [WEST, EAST]: self.robot.recalibration_counter_x = 0
                 elif closest_direction(self.robot.current_direction) in [NORTH, SOUTH]: self.robot.recalibration_counter_y = 0
                 continue
-            
+
                 
             # Compute next position
             if self.robot.pathfinding_path:
@@ -146,7 +146,7 @@ class Robot(CRobLinkAngs):
                             break
                         else: 
                             self.robot.exploration_complete = True 
-                            self.compute_target_cell_path()
+                            self.compute_beacon_path()
                     else: continue
             
             self.robot.recalibration_complete = False
@@ -159,7 +159,7 @@ class Robot(CRobLinkAngs):
             #target_positions = list(self.robot.target_cells.values())
             #print([cell.get_middle_position() for cell in target_positions])
             
-        self.maze.print_map(self.robot.target_cells)  
+        self.maze.print_map(self.robot.beacons)  
     
 
     def get_next_move(self):
@@ -212,10 +212,10 @@ class Robot(CRobLinkAngs):
         self.robot.direction_setpoint = vector_to_direction(move_vector)
                 
 
-    def compute_target_cell_path(self):
+    def compute_beacon_path(self):
         initial_cell = self.maze.get_cell(self.robot.initial_position)
-        target_cells = self.robot.target_cells
-        target_positions = list(target_cells.keys())
+        beacons = self.robot.beacons
+        beacons_id = list(beacons.keys())
 
         # Cache for shortest path computations
         path_cache = {}
@@ -238,7 +238,7 @@ class Robot(CRobLinkAngs):
             return len(path) == len(unvisited_path)
 
         # Generate all permutations of target positions
-        path_combinations = list(itertools.permutations(target_positions, len(target_positions)))
+        path_combinations = list(itertools.permutations(beacons_id, len(beacons_id)))
         shortest_total_path = None
         shortest_total_path_length = float('inf')
 
@@ -250,7 +250,7 @@ class Robot(CRobLinkAngs):
             current_path = []
 
             # Path from initial cell to the first target
-            path_segment = get_shortest_path(initial_cell, target_cells[combination[0]])
+            path_segment = get_shortest_path(initial_cell, beacons[combination[0]])
             #if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
                 #print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
             #    return False
@@ -258,14 +258,14 @@ class Robot(CRobLinkAngs):
 
             # Path between intermediate targets
             for i in range(1, len(combination)):
-                path_segment = get_shortest_path(target_cells[combination[i - 1]], target_cells[combination[i]])
+                path_segment = get_shortest_path(beacons[combination[i - 1]], beacons[combination[i]])
                 #if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
                     #print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
                 #    return False
                 current_path.extend(path_segment)
 
             # Path from the last target back to the initial cell
-            path_segment = get_shortest_path(target_cells[combination[-1]], initial_cell)
+            path_segment = get_shortest_path(beacons[combination[-1]], initial_cell)
             #if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
                 #print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
             #    return False
@@ -304,7 +304,7 @@ class Robot(CRobLinkAngs):
                 y = int(y) - self.maze.rows*self.maze.cell_size # Normalize the position
 
                 # Check if the current cell is a target cell
-                for key, value in target_cells.items():
+                for key, value in beacons.items():
                     if value == cell:
                         file.write(f"{x} {y} #{int(key)}\n")
                         break  # Skip the general write since the cell was written as a target

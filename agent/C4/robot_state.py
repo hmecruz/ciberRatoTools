@@ -40,8 +40,8 @@ class RobotState:
         # Pathfinding
         self.pathfinding_path = []
 
-        # Target Cells
-        self.target_cells = {} # id: Cell
+        # Beacons 
+        self.beacons = {} # id: Cell
 
         # Map Exploration Completed
         self.exploration_complete = False
