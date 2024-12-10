@@ -26,7 +26,7 @@ for i in range(1, len(sys.argv),2):
         quit()
 
 if __name__ == '__main__':
-    rob=Robot(rob_name,pos,[0.0,90.0,-90.0,180.0],host,outfile+".path")
+    rob=Robot(rob_name,pos,[0.0,90.0,-90.0,180.0],host,outfile)
     if mapc != None:
         rob.setMap(mapc.labMap)
         rob.printMap()

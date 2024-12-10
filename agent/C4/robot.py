@@ -48,7 +48,7 @@ class Robot(CRobLinkAngs):
         self.outfile = outfile
         
         self.robot = RobotState()  # Encapsulates robot state
-        self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS)
+        self.maze = MazeMap(rows=CELLROWS, cols=CELLCOLS,outfile=self.outfile+".map")
         self.robot.current_position = self.robot.initial_position = self.maze.robot_initial_position
 
         self.speed_pd_controller = PDController(kp=KP, kd=KD, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Throttle
@@ -285,7 +285,7 @@ class Robot(CRobLinkAngs):
 
        
         # Write the final map to a text file
-        with open(self.outfile, "w") as file:
+        with open(self.outfile+".path", "w") as file:
             file.write("0 0 #0\n")
             for cell in shortest_total_path:
                 x, y = self.maze.get_cell_index(cell)
