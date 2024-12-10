@@ -58,7 +58,7 @@ class Robot(CRobLinkAngs):
         self.sensor_reliability  = SensorReliabilty(window_size=5)
         self.ground_reliability = SensorReliabilty(window_size=3)
 
-        self.beacon_detected = False
+        self.beacon_detection_complete = False 
         self.endLap = False 
 
 
@@ -85,10 +85,10 @@ class Robot(CRobLinkAngs):
             
             # Target Cells
             has_target_cell, target_id = self.ground_reliability.update(self.measures.ground)
-
-            if not self.beacon_detected and has_target_cell and target_id > 0:
+            if not self.beacon_detection_complete and has_target_cell and target_id > 0:
                 self.robot.target_cells[target_id] = self.robot.cell
-                self.beacon_detected = True
+            if len(self.ground_reliability.values) >= self.ground_reliability.window_size:
+                self.beacon_detection_complete = True
                 
 
             # Steering Mode
@@ -170,7 +170,7 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_counter_y += 1
 
             self.ground_reliability.values.clear() # Clear beacon 
-            self.beacon_detected = False
+            self.beacon_detection_complete = False
 
             target_positions = list(self.robot.target_cells.values())
             print([cell.get_middle_position() for cell in target_positions])
@@ -270,13 +270,13 @@ class Robot(CRobLinkAngs):
         
         self.robot.pathfinding_path = finalPath
 
-        if DEBUG:
-            print(f"SP:\t{len(self.robot.target_cell_path)}")
+        #if DEBUG:
+        print(f"SP:\t{len(self.robot.target_cell_path)}")
 
-            p = []
-            for cell in self.robot.pathfinding_path:
-                p.append(cell.get_middle_position())
-            print(p)
+        p = []
+        for cell in self.robot.pathfinding_path:
+            p.append(cell.get_middle_position())
+        print(p)
 
 
         # Write the final map to a text file
