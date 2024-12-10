@@ -318,8 +318,8 @@ class Robot(CRobLinkAngs):
             file.write("0 0 #0\n")
             for cell in shortest_total_path:
                 x, y = self.maze.get_cell_index(cell)
-                x = int(x)
-                y = int(y)
+                x = int(x) - self.maze.cols*self.maze.cell_size # Normalize the position
+                y = int(y) - self.maze.rows*self.maze.cell_size # Normalize the position
 
                 # Check if the current cell is a target cell
                 for key, value in target_cells.items():
