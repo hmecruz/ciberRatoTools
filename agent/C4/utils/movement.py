@@ -71,28 +71,13 @@ class MovementModel:
 
     @staticmethod
     def compute_direction(prev_direction_degrees, rotational_vel):
-
-        # if prev_direction_degrees <= -90 or prev_direction_degrees >= 90:
-        #     print(f"Prev Direction: {prev_direction_degrees}\nRotational Vel: {rotational_vel}")
-
-        # if prev_direction_degrees < 0:
-        #     prev_direction_degrees = 360 + prev_direction_degrees
-
-        # prev_direction_degrees = normalize_angle(prev_direction_degrees)
-
         prev_direction_radians = math.radians(
             prev_direction_degrees
         )  # Convert degrees to radians
 
-        # TODO: [-PI,PI]
-
         direction_radians = prev_direction_radians + rotational_vel
 
         direction = math.degrees(direction_radians)
-
-        # direction = normalize_angle(direction)
-
-        # TODO: [-180,180]
 
         return direction
 
@@ -112,18 +97,6 @@ class MovementModel:
             linear_vel,
         )
 
-        # TODO Apply filter
-        # filtered_position = (
-        #     self.filtered_x.update(position[0]),
-        #     self.filtered_y.update(position[1]),
-        # )
-
-        # TODO: Remove this
-        # if closest_direction(self.robot_state.current_direction) in [NORTH,SOUTH]:
-        #     self.robot_state.current_position = (self.robot_state.current_position[0], position[1])
-        # else:
-        #     self.robot_state.current_position = (position[0],self.robot_state.current_position[1])
-
         self.robot_state.current_position = position
 
     def update_direction(self, compass):
@@ -139,16 +112,9 @@ class MovementModel:
             self.robot_state.current_direction, rotational_vel
         )
 
-
-        # TODO: this might be wrong, and probably why the 0 because in left and right are at the same distance then it nullifies it
-        # I think now it's right, check it
-
         must_reflect =  (self.compass_movement_model < -90 or self.compass_movement_model > 90) and (compass < -90 or compass > 90)
 
         if must_reflect:
-            print(f"MM:\t{self.compass_movement_model}")
-            print(f"Co:\t{compass}")
-
             self.compass_movement_model = reflect_angle(self.compass_movement_model)
             compass = reflect_angle(compass)
 
@@ -182,7 +148,3 @@ class MovementModel:
         self.robot_state.current_direction = (
             filtered_compass if filtered_compass != -180 else 180
         )  # Normalize direction
-
-        # print(f"MM Direction: {self.compass_movement_model}")
-        # print(f"Noise Direction: {compass}")
-        # print(f"Filtered Direction: {filtered_compass}")

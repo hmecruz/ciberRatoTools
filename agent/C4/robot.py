@@ -11,8 +11,7 @@ from utils.MultiColumnData import *
 import itertools
 
 
-import signal
-import sys
+
 
 
 #############################
@@ -21,15 +20,19 @@ DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
 DATA_Y = MultiColumnData(2,['Y (GPS)','Y (MM)'])
 DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
 
+import signal
+import sys
+
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
-    DATA_X.plot_all_columns()
-    plt.savefig("./plot/x_plot.png", format='png', dpi=300)
-    DATA_Y.plot_all_columns()
-    plt.savefig("./plot/y_plot.png", format='png', dpi=300)
-    DATA_COMPASS.plot_all_columns()
-    plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
-    #plt.show()
+    if DEBUG:
+        DATA_X.plot_all_columns()
+        plt.savefig("./plot/x_plot.png", format='png', dpi=300)
+        DATA_Y.plot_all_columns()
+        plt.savefig("./plot/y_plot.png", format='png', dpi=300)
+        DATA_COMPASS.plot_all_columns()
+        plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
+        plt.show()
     
     # Perform any cleanup here
     sys.exit(0)
@@ -37,6 +40,8 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 #############################
+
+DEBUG = False
 
 
 class Robot(CRobLinkAngs):
@@ -58,6 +63,8 @@ class Robot(CRobLinkAngs):
 
         self.is_next_cell = False
 
+        self.endLap = False
+
 
     def run(self):
         if self.status != 0:
@@ -66,18 +73,18 @@ class Robot(CRobLinkAngs):
 
         self.robot.initialize(self)
 
-        # TODO: remove this
-        self.realGPS = (self.measures.x,self.measures.y)
+        if DEBUG:
+            self.realGPS = (self.measures.x,self.measures.y)
 
         while True:
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
-            print("----------------------------------------")
 
-
-            # TODO: remove this
-            DATA_X.add_row([self.measures.x,self.realGPS[0] + self.robot.current_position[0]])
-            DATA_Y.add_row([self.measures.y, self.realGPS[1] + self.robot.current_position[1]])
-            DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
+            if DEBUG:
+                print(f"[{self.measures.time}]-------------------------------")
+                DATA_X.add_row([self.measures.x,self.realGPS[0] + self.robot.current_position[0]])
+                DATA_Y.add_row([self.measures.y, self.realGPS[1] + self.robot.current_position[1]])
+                DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
+                print(f"Target Cell: {self.robot.target_cells}")
 
 
             # Target Cells
@@ -86,9 +93,6 @@ class Robot(CRobLinkAngs):
             if has_target_cell and self.is_next_cell and target_id > 0:
                 self.robot.target_cells[target_id] = self.robot.cell
                 self.is_next_cell = False
-                print(f"Target Cell: {self.robot.target_cells}")
-
-
 
             # Steering Mode
             if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
@@ -108,7 +112,6 @@ class Robot(CRobLinkAngs):
             if self.robot.recalibration_mode == True:
                 if self.robot.recalibration_phase == 0:
                     if self.recalibration():
-                        #print("Recalibrar")
                         continue
                     else: self.robot.recalibration_phase = 1 # Next recalibration phase
                 
@@ -125,11 +128,9 @@ class Robot(CRobLinkAngs):
             
 
             # Recalibration
-            is_x_recalibration_due = closest_direction(self.robot.current_direction) in [WEST, EAST] and \
-                                        self.robot.recalibration_counter_x >= RECALIBRATION_PERIOD_X
+            is_x_recalibration_due = closest_direction(self.robot.current_direction) in [WEST, EAST] and self.robot.recalibration_counter_x >= RECALIBRATION_PERIOD_X
             
-            is_y_recalibration_due = closest_direction(self.robot.current_direction) in [NORTH, SOUTH] and \
-                                        self.robot.recalibration_counter_y >= RECALIBRATION_PERIOD_Y
+            is_y_recalibration_due = closest_direction(self.robot.current_direction) in [NORTH, SOUTH] and self.robot.recalibration_counter_y >= RECALIBRATION_PERIOD_Y
             
             is_wall_in_front = getattr(self.robot.cell, sensor_map.get("center")) == True
 
@@ -141,10 +142,23 @@ class Robot(CRobLinkAngs):
                 
 
             if len(self.robot.target_cells) >= int(self.nBeacons) - 1:
+                if len(self.robot.pathfinding_path) <= 0 and self.robot.cell == self.maze.get_cell(self.robot.initial_position): 
+                    if DEBUG:
+                        DATA_X.plot_all_columns()
+                        plt.savefig("./plot/x_plot.png", format='png', dpi=300)
+                        DATA_Y.plot_all_columns()
+                        plt.savefig("./plot/y_plot.png", format='png', dpi=300)
+                        DATA_COMPASS.plot_all_columns()
+                        plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
+                        plt.show()
+                    
+                    print("End of Lap.")
+                    self.driveMotors(0, 0)
+                    sys.exit(0)
+                
                 if len(self.robot.pathfinding_path) <= 0: 
                     self.compute_target_cell_path()
-                if len(self.robot.pathfinding_path) <= 0 and self.robot.cell == self.maze.get_cell(self.robot.initial_position): 
-                    sys.exit(0)
+                    
 
 
             # Compute next position
@@ -159,7 +173,7 @@ class Robot(CRobLinkAngs):
             self.robot.recalibration_counter_x += 1
             self.robot.recalibration_counter_y += 1
         
-        self.compute_target_cell_path()
+        #self.compute_target_cell_path()
     
 
     def get_next_move(self):
@@ -215,23 +229,23 @@ class Robot(CRobLinkAngs):
     def compute_target_cell_path(self):    
         initial_cell = self.maze.get_cell(self.robot.initial_position)
 
-        # TODO: do all combinations and check which is shortest
-
         path_combinations = list(itertools.permutations(self.robot.target_cells.keys(), len(self.robot.target_cells)))
         
         self.robot.target_cell_path = None
 
         for combination in path_combinations:
-            # TODO: missing how do i know how many cells are going to be visited
             path1 = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
             path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
             if len(path1) != len(path1_unvisited): return False
+
+            # print all cell from path1 using get_middle_position
 
             for i in range(1, len(combination)):
                 path2 = shortest_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
                 path2_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
                 if len(path2) != len(path2_unvisited): return False
-                path1.extend(path2[1:-1])
+
+                path1.extend(path2)
             
             path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
             path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
@@ -244,27 +258,40 @@ class Robot(CRobLinkAngs):
             if len(self.robot.target_cell_path) > len(path1):
                 self.robot.target_cell_path = path1
 
-            print(f"T SP:\t{len(path1)}")
-        
-        print(f"F SP:\t{len(self.robot.target_cell_path)}")
 
-        start_path = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
+        goToStartPath = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
+
+        finalPath = []
+        finalPath.extend(goToStartPath)
+        finalPath.extend(self.robot.target_cell_path)
         
-        final_path = []
-        final_path.extend(start_path)
-        final_path.extend(self.robot.target_cell_path)
-        
-        self.robot.pathfinding_path = final_path
-            
+        self.robot.pathfinding_path = finalPath
+
+        if DEBUG:
+            print(f"SP:\t{len(self.robot.target_cell_path)}")
+
+            p = []
+            for cell in self.robot.pathfinding_path:
+                p.append(cell.get_middle_position())
+            print(p)
+
+
         for cell in self.robot.target_cell_path:
             x, y = self.maze.get_cell_index(cell)
             
             # Write the final map to a text file
             with open(self.outfile, "w") as file:
+                file.write("0 0 #0\n")
                 for cell in self.robot.target_cell_path:
                     x, y = self.maze.get_cell_index(cell)
                     x = int(x)
                     y = int(y)
+
+                    for key,value in self.robot.target_cells.items():
+                        if value == cell:
+                            file.write(f"{x} {y} #{int(key)}\n")
+                            break
+
                     file.write(f"{x} {y}\n")
                 
         return True
@@ -287,14 +314,20 @@ class Robot(CRobLinkAngs):
         self.robot.movement_model.input_signal_left = -steering_correction
         self.robot.movement_model.input_signal_right = steering_correction
         self.driveMotors(-steering_correction, steering_correction)
-        #print(f"Steering Power: ({-steering_correction}, {steering_correction})")
+
+
+        if DEBUG:
+            print(f"Steering Power: ({-steering_correction}, {steering_correction})")
+
         return True
     
     
     def move_forward(self):
-        #print(f"Previous Position: {self.robot.previous_position}")
-        #print(f"Current Position: {self.robot.current_position}")
-        #print(f"Position Setpoint: {self.robot.position_setpoint}")
+        if DEBUG:
+            print("MOVING FORWARD")
+            print(f"Previous Position: {self.robot.previous_position}")
+            print(f"Current Position: {self.robot.current_position}")
+            print(f"Position Setpoint: {self.robot.position_setpoint}")
         
         if self.robot.previous_position == self.robot.current_position == self.robot.position_setpoint or \
         (
@@ -341,15 +374,19 @@ class Robot(CRobLinkAngs):
         self.robot.movement_model.input_signal_right = right_motor_power
 
         self.driveMotors(left_motor_power, right_motor_power)    
-        #if left_motor_power < right_motor_power:
-        #    print("Esquerda")
-        #elif left_motor_power > right_motor_power:
-        #    print("Direita")
-        #else: print("Frente")
-        #print(f"Base Speed: {base_speed}")
-        #print(f"Steering Speed: {steering_power}")
-        #print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
-        #print(f"Throttle Power: ({left_motor_power}, {right_motor_power})")
+
+
+
+        if DEBUG:
+            if left_motor_power < right_motor_power:
+               print("Esquerda")
+            elif left_motor_power > right_motor_power:
+               print("Direita")
+            else: print("Frente")
+            print(f"Base Speed: {base_speed}")
+            print(f"Steering Speed: {steering_power}")
+            print(f"lPow rPow: ({round(left_motor_power, 2)}, {round(right_motor_power, 2)})")
+            print(f"Throttle Power: ({left_motor_power}, {right_motor_power})")
     
 
     def calculate_motor_power(self, base_speed, steering_power):
@@ -367,7 +404,7 @@ class Robot(CRobLinkAngs):
             (
                 abs(self.robot.previous_position[0] - self.robot.current_position[0]) < 0.1 and \
                 abs(self.robot.previous_position[1] - self.robot.current_position[1]) < 0.1 and \
-                abs(self.robot.ir_sensors["center"] - CENTER_SENSOR_SETPOINT) < 0.1 # TODO: adjust value
+                abs(self.robot.ir_sensors["center"] - CENTER_SENSOR_SETPOINT) < 0.1
             ):
 
             self.robot.movement_model.input_signal_left = 0
@@ -391,11 +428,6 @@ class Robot(CRobLinkAngs):
         # Center of cell - Wall thickness - distance from the wall
         distance = (0.5 - 0.1) - (1 / distance)
         
-        #print(f"Distance: {distance}")
-        #print(f"Direction: {dir}")
-        #print(f"Current Direction: {self.robot.current_direction}")
-        #print(f"Current Position: {self.robot.current_position}")
-        #print(f"Position Setpoint: {self.robot.position_setpoint}")
 
         if dir ==  EAST:
             self.robot.current_position = (round(self.robot.position_setpoint[0]+distance,2), self.robot.current_position[1]) 
@@ -406,14 +438,19 @@ class Robot(CRobLinkAngs):
         else: # South
             self.robot.current_position = (self.robot.current_position[0], round(self.robot.position_setpoint[1]- distance,2))
         
-        #print(f"Recalibrated Current Position: {self.robot.current_position}")
+        if DEBUG:
+            print("Robot Recalibrated.")
+            print(f"Distance: {distance}")
+            print(f"Direction: {dir}")
+            print(f"Current Direction: {self.robot.current_direction}")
+            print(f"Current Position: {self.robot.current_position}")
+            print(f"Position Setpoint: {self.robot.position_setpoint}")
+            print(f"Recalibrated Current Position: {self.robot.current_position}")
         
         self.robot.switch_to_steering()
         self.robot.recalibration_complete = True
         self.robot.recalibration_phase = 0
         self.sensor_reliability.clear_window()
-
-        print("Terminei a recalibração")
                 
 
     def create_cell_from_vector(self, vector):
