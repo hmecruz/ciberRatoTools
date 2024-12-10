@@ -228,15 +228,57 @@ class Robot(CRobLinkAngs):
             path = shortest_path_bfs(cell_a, cell_b, self.maze)
             path_cache[key] = path
             return path
-
+        
         def is_valid_path(cell_a, cell_b, path):
             unvisited_path = shortest_unvisited_path_bfs(cell_a, cell_b, self.maze)
             return len(path) == len(unvisited_path)
+
+        def calculate_rotation_cost(path, initial_heading):
+            """Calculate total rotation cost for a given path."""
+            total_cost = 0
+            current_heading = initial_heading
+
+            for i in range(1, len(path)):
+                current_cell = path[i - 1]
+                next_cell = path[i]
+                cell_x, cell_y = current_cell.get_middle_position()
+                next_cell_x, next_cell_y = next_cell.get_middle_position()
+                
+                # Compute the direction to the next cell
+                dx = next_cell_x - cell_x
+                dy = next_cell_y - cell_y
+
+                # Determine the target direction
+                if dx == 0 and dy > 0:
+                    target_heading = 90.0  # NORTH
+                elif dx == 0 and dy < 0:
+                    target_heading = -90.0  # SOUTH
+                elif dx > 0 and dy == 0:
+                    target_heading = 0.0  # EAST
+                elif dx < 0 and dy == 0:
+                    target_heading = 180.0  # WEST
+                else:
+                    raise ValueError("Invalid cell movement")
+
+                # Calculate the rotation cost
+                rotation = abs(target_heading - current_heading)
+                rotation = min(rotation, 360 - rotation)  # Normalize to the smallest rotation
+                if rotation == 90:
+                    total_cost += 1
+                elif rotation == 180:
+                    total_cost += 2
+
+                # Update the current heading
+                current_heading = target_heading
+
+            return total_cost
 
         # Generate all permutations of target positions
         path_combinations = list(itertools.permutations(beacons_id, len(beacons_id)))
         shortest_total_path = None
         shortest_total_path_length = float('inf')
+        lowest_rotation_cost = float('inf')
+        current_direction = closest_direction(self.robot.current_direction)
 
         for combination in path_combinations:
             current_path = []
@@ -263,11 +305,20 @@ class Robot(CRobLinkAngs):
             #    return False
             current_path.extend(path_segment)
 
-            # Check if the current path is the shortest
-            if len(current_path) < shortest_total_path_length:
+
+            # Check if the current path is the shortest or has the lowest rotation cost
+            current_path_length = len(current_path)
+            rotation_cost = calculate_rotation_cost(current_path, current_direction)
+
+            if (current_path_length < shortest_total_path_length) or \
+                (
+                    current_path_length == shortest_total_path_length and \
+                    rotation_cost < lowest_rotation_cost
+                ):
                 shortest_total_path = current_path
                 shortest_total_path_length = len(current_path)
-
+                lowest_rotation_cost = rotation_cost
+        
         
         # If no valid path found, return failure
         if not shortest_total_path:
