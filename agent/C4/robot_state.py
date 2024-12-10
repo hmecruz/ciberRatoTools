@@ -43,8 +43,12 @@ class RobotState:
         # Target Cells
         self.target_cells = {} # id: Cell
 
+        # Map Exploration Completed
+        self.exploration_complete = False
+
         # Movement Model
         self.movement_model = MovementModel(self)
+
 
     def initialize(self, robot):
         robot.readSensors()  # Read sensors

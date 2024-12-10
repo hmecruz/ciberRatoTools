@@ -126,9 +126,7 @@ class Robot(CRobLinkAngs):
 
             # Recalibration
             is_x_recalibration_due = closest_direction(self.robot.current_direction) in [WEST, EAST] and self.robot.recalibration_counter_x >= RECALIBRATION_PERIOD_X
-            
             is_y_recalibration_due = closest_direction(self.robot.current_direction) in [NORTH, SOUTH] and self.robot.recalibration_counter_y >= RECALIBRATION_PERIOD_Y
-            
             is_wall_in_front = getattr(self.robot.cell, sensor_map.get("center")) == True
 
             if not self.robot.recalibration_complete and (is_x_recalibration_due or is_y_recalibration_due) and is_wall_in_front:
@@ -136,34 +134,19 @@ class Robot(CRobLinkAngs):
                 if closest_direction(self.robot.current_direction) in [WEST, EAST]: self.robot.recalibration_counter_x = 0
                 elif closest_direction(self.robot.current_direction) in [NORTH, SOUTH]: self.robot.recalibration_counter_y = 0
                 continue
+            
                 
-
-            if len(self.robot.target_cells) >= int(self.nBeacons) - 1:
-                if len(self.robot.pathfinding_path) <= 0 and self.robot.cell == self.maze.get_cell(self.robot.initial_position): 
-                    if DEBUG:
-                        DATA_X.plot_all_columns()
-                        plt.savefig("./plot/x_plot.png", format='png', dpi=300)
-                        DATA_Y.plot_all_columns()
-                        plt.savefig("./plot/y_plot.png", format='png', dpi=300)
-                        DATA_COMPASS.plot_all_columns()
-                        plt.savefig("./plot/compass_plot.png", format='png', dpi=300)
-                        plt.show()
-                    
-                    print("End of Lap.")
-                    self.driveMotors(0, 0)
-                    break
-                
-                if len(self.robot.pathfinding_path) <= 0: 
-                    self.compute_target_cell_path()
-                    
-
-
             # Compute next position
             if self.robot.pathfinding_path:
                 self.follow_path()
             else: 
                 if not self.get_next_move() : # Compute the next move
-                    if bfs(self) == False: break # Map exploration complete
+                    if bfs(self) == False: # Map exploration complete
+                        if self.robot.exploration_complete:
+                            break
+                        else: 
+                            self.robot.exploration_complete = True 
+                            self.compute_target_cell_path()
                     else: continue
             
             self.robot.recalibration_complete = False
@@ -176,8 +159,7 @@ class Robot(CRobLinkAngs):
             #target_positions = list(self.robot.target_cells.values())
             #print([cell.get_middle_position() for cell in target_positions])
             
-        self.maze.print_map(self.robot.target_cells) 
-        #self.compute_target_cell_path()    
+        self.maze.print_map(self.robot.target_cells)  
     
 
     def get_next_move(self):
@@ -269,24 +251,24 @@ class Robot(CRobLinkAngs):
 
             # Path from initial cell to the first target
             path_segment = get_shortest_path(initial_cell, target_cells[combination[0]])
-            if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
+            #if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
                 #print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
-                return False
+            #    return False
             current_path.extend(path_segment)
 
             # Path between intermediate targets
             for i in range(1, len(combination)):
                 path_segment = get_shortest_path(target_cells[combination[i - 1]], target_cells[combination[i]])
-                if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
+                #if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
                     #print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
-                    return False
+                #    return False
                 current_path.extend(path_segment)
 
             # Path from the last target back to the initial cell
             path_segment = get_shortest_path(target_cells[combination[-1]], initial_cell)
-            if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
+            #if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
                 #print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
-                return False
+            #    return False
             current_path.extend(path_segment)
 
             # Check if the current path is the shortest
