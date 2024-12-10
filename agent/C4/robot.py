@@ -229,163 +229,109 @@ class Robot(CRobLinkAngs):
         self.robot.direction_setpoint = vector_to_direction(move_vector)
                 
 
-    def compute_target_cell_path(self):    
-        initial_cell = self.maze.get_cell(self.robot.initial_position)
-
-        path_combinations = list(itertools.permutations(self.robot.target_cells.keys(), len(self.robot.target_cells)))
-        
-        self.robot.target_cell_path = None
-
-        for combination in path_combinations:
-            path1 = shortest_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-            path1_unvisited = shortest_unvisited_path_bfs(initial_cell, self.robot.target_cells[combination[0]], self.maze)
-            if len(path1) != len(path1_unvisited): return False
-
-            # print all cell from path1 using get_middle_position
-
-            for i in range(1, len(combination)):
-                path2 = shortest_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
-                path2_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[i-1]], self.robot.target_cells[combination[i]], self.maze)
-                if len(path2) != len(path2_unvisited): return False
-
-                path1.extend(path2)
-            
-            path3 = shortest_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
-            path3_unvisited = shortest_unvisited_path_bfs(self.robot.target_cells[combination[-1]], initial_cell, self.maze)
-            if len(path3) != len(path3_unvisited): return False
-            path1.extend(path3)
-
-            if not self.robot.target_cell_path:
-                self.robot.target_cell_path = path1
-
-            if len(self.robot.target_cell_path) > len(path1):
-                self.robot.target_cell_path = path1
-
-
-        goToStartPath = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
-
-        finalPath = []
-        finalPath.extend(goToStartPath)
-        finalPath.extend(self.robot.target_cell_path)
-        
-        self.robot.pathfinding_path = finalPath
-
-        #if DEBUG:
-        print(f"SP:\t{len(self.robot.target_cell_path)}")
-
-        p = []
-        for cell in self.robot.pathfinding_path:
-            p.append(cell.get_middle_position())
-        print(p)
-
-
-        # Write the final map to a text file
-        with open(self.outfile, "w") as file:
-            file.write("0 0 #0\n")
-            for cell in self.robot.target_cell_path:
-                x, y = self.maze.get_cell_index(cell)
-                x = int(x)
-                y = int(y)
-
-                # Check if the current cell is a target cell
-                for key, value in self.robot.target_cells.items():
-                    if value == cell:
-                        file.write(f"{x} {y} #{int(key)}\n")
-                        break  # Skip the general write since the cell was written as a target
-                else:
-                    # Only executed if no target cell match was found
-                    file.write(f"{x} {y}\n")
-                
-        return True
-            
-        """
-        def compute_target_cell_path(self):
+    def compute_target_cell_path(self):
         initial_cell = self.maze.get_cell(self.robot.initial_position)
         target_cells = self.robot.target_cells
         target_positions = list(target_cells.keys())
-        
+
         # Cache for shortest path computations
         path_cache = {}
 
         def get_shortest_path(cell_a, cell_b):
             # Check cache first
-            if (cell_a, cell_b) in path_cache:
-                return path_cache[(cell_a, cell_b)]
+            key = (cell_a, cell_b)
+            if key in path_cache:
+                print(f"Cache hit for: {key}")
+                return path_cache[key]
+            print(f"Cache miss for: {key}")
             path = shortest_path_bfs(cell_a, cell_b, self.maze)
-            path_cache[(cell_a, cell_b)] = path
+            path_cache[key] = path
             return path
 
-        def is_valid_path(path):
-            unvisited_path = shortest_unvisited_path_bfs(path[0], path[-1], self.maze)
+        def is_valid_path(cell_a, cell_b, path):
+            unvisited_path = shortest_unvisited_path_bfs(cell_a, cell_b, self.maze)
+            print(f"Path Segment: {[cell.get_middle_position() for cell in path]}")
+            print(f"Unvisited Path: {[cell.get_middle_position() for cell in unvisited_path]}")
             return len(path) == len(unvisited_path)
 
         # Generate all permutations of target positions
-        path_combinations = itertools.permutations(target_positions)
+        path_combinations = list(itertools.permutations(target_positions, len(target_positions)))
         shortest_total_path = None
         shortest_total_path_length = float('inf')
 
+        print(f"Target Positions: {target_positions}")
+        print(f"Path Combinations: {path_combinations}")
+
         for combination in path_combinations:
+            print(f"Processing Combination: {combination}")
             current_path = []
 
             # Path from initial cell to the first target
             path_segment = get_shortest_path(initial_cell, target_cells[combination[0]])
-            if not is_valid_path(path_segment):
+            if not is_valid_path(initial_cell, target_cells[combination[0]], path_segment):
+                print(f"Invalid path from {initial_cell} to {target_cells[combination[0]]}")
                 return False
             current_path.extend(path_segment)
 
             # Path between intermediate targets
             for i in range(1, len(combination)):
                 path_segment = get_shortest_path(target_cells[combination[i - 1]], target_cells[combination[i]])
-                if not is_valid_path(path_segment):
+                if not is_valid_path(target_cells[combination[i - 1]], target_cells[combination[i]], path_segment):
+                    print(f"Invalid path from {target_cells[combination[i - 1]]} to {target_cells[combination[i]]}")
                     return False
-                current_path.extend(path_segment)  
+                current_path.extend(path_segment)
 
             # Path from the last target back to the initial cell
             path_segment = get_shortest_path(target_cells[combination[-1]], initial_cell)
-            if not is_valid_path(path_segment):
+            if not is_valid_path(target_cells[combination[-1]], initial_cell, path_segment):
+                print(f"Invalid path from {target_cells[combination[-1]]} to {initial_cell}")
                 return False
-            current_path.extend(path_segment)  # Skip the first cell to prevent duplication
+            current_path.extend(path_segment)
 
             # Check if the current path is the shortest
             if len(current_path) < shortest_total_path_length:
+                print(f"New shortest path found: Length {len(current_path)}")
                 shortest_total_path = current_path
                 shortest_total_path_length = len(current_path)
 
-
         # If no valid path found, return failure
         if not shortest_total_path:
+            print("No valid path found!")
             return False
-
 
         # Path from the robot's current position to the initial cell
         start_path = shortest_path_bfs(self.robot.cell, initial_cell, self.maze)
 
         final_path = []
         final_path.extend(start_path)
-        final_path.extend(shortest_total_path[1:]) # Excluding the first element because it is repeated
-        
+        final_path.extend(shortest_total_path)
+
         self.robot.pathfinding_path = final_path
 
-        if DEBUG:
-            print(f"Shortest Path Length: {shortest_total_path_length}")
-            print([cell.get_middle_position() for cell in final_path])
+        # Debug: Print the final path length
+        print(f"Final Path Length: {len(final_path)}")
+        print(f"Final Path: {[cell.get_middle_position() for cell in final_path]}")
 
         # Write the final map to a text file
         with open(self.outfile, "w") as file:
             file.write("0 0 #0\n")
             for cell in shortest_total_path:
                 x, y = self.maze.get_cell_index(cell)
-                x, y = int(x), int(y)
+                x = int(x)
+                y = int(y)
+
+                # Check if the current cell is a target cell
                 for key, value in target_cells.items():
                     if value == cell:
                         file.write(f"{x} {y} #{int(key)}\n")
-                        break
-                file.write(f"{x} {y}\n")
+                        break  # Skip the general write since the cell was written as a target
+                else:
+                    # Only executed if no target cell match was found
+                    file.write(f"{x} {y}\n")
 
-        print("Cheguei")
         return True
-        """
 
+            
     
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
