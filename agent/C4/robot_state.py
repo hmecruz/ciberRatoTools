@@ -29,8 +29,8 @@ class RobotState:
         # Recalibration
         self.recalibration_complete = False
         self.recalibration_phase = 0
-        self.recalibration_counter_x = 0  # Counter till robot is able to recalibrate
-        self.recalibration_counter_y = 0  # Counter till robot is able to recalibrate
+        self.recalibration_counter_x = 0  # Counter till robot is allowed to recalibrate
+        self.recalibration_counter_y = 0  # Counter till robot is allowed to recalibrate
 
         # Cell state
         self.cell = None
@@ -40,8 +40,8 @@ class RobotState:
         # Pathfinding
         self.pathfinding_path = []
 
-        # Target Cells
-        self.target_cells = {} # id: Cell
+        # Beacons 
+        self.beacons = {} # id: Cell
 
         # Map Exploration Completed
         self.exploration_complete = False
@@ -59,6 +59,7 @@ class RobotState:
         self.cell_setpoint = self.cell
 
         robot.maze.add_cell_map(self.cell, self.cell_index)
+        
 
     def read_sensors_update_measures(self, robot):
         # Update previous measures
@@ -101,6 +102,7 @@ class RobotState:
         self.moving_mode = False
         self.steering_mode = False
         self.recalibration_mode = True
+
 
     def sensor_vector_map(self, sensor_name):
         sensor_map = {

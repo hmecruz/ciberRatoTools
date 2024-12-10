@@ -157,6 +157,7 @@ class MazeMap:
                 return cell
         return None
     
+    
     def get_cell_index(self, cell: Cell):
         for key, value in self.map.items():
             if value is None: continue
