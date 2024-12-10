@@ -278,7 +278,7 @@ class Robot(CRobLinkAngs):
         shortest_total_path = None
         shortest_total_path_length = float('inf')
         lowest_rotation_cost = float('inf')
-        current_direction = closest_direction(self.robot.current_direction)
+        current_direction = EAST
 
         for combination in path_combinations:
             current_path = []
@@ -341,7 +341,7 @@ class Robot(CRobLinkAngs):
             for cell in shortest_total_path:
                 x, y = self.maze.get_cell_index(cell)
                 x = int(x) - self.maze.cols*self.maze.cell_size # Normalize the position
-                y = int(y) - self.maze.rows*self.maze.cell_size # Normalize the position
+                y = -(int(y) - self.maze.rows*self.maze.cell_size) # Normalize the position
 
                 # Check if the current cell is a target cell
                 for key, value in beacons.items():

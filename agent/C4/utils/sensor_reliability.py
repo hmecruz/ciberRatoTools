@@ -1,7 +1,7 @@
 from collections import deque
 import math
 
-RELIABILITY_THRESHOLD = 0.25
+RELIABILITY_THRESHOLD = 0.27
 
 
 class SensorReliabilty:
