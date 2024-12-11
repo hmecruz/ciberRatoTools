@@ -1,4 +1,7 @@
 import sys
+import signal
+import itertools
+
 
 from croblink import *
 from robot_state import RobotState
@@ -8,8 +11,6 @@ from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 from utils.sensor_reliability import *
 from utils.MultiColumnData import *
-import itertools
-
 
 #############################
 
@@ -17,8 +18,8 @@ DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
 DATA_Y = MultiColumnData(2,['Y (GPS)','Y (MM)'])
 DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
 
-import signal
-import sys
+
+
 
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
@@ -122,7 +123,6 @@ class Robot(CRobLinkAngs):
             self.robot.cell = self.robot.cell_setpoint # Update robot cell after new position is reached 
             sensor_map = self.robot.cell.mark_walls(self.robot.ir_sensors, closest_direction(self.robot.current_direction))
             
-
             # Recalibration
             is_x_recalibration_due = closest_direction(self.robot.current_direction) in [WEST, EAST] and self.robot.recalibration_counter_x >= RECALIBRATION_PERIOD_X
             is_y_recalibration_due = closest_direction(self.robot.current_direction) in [NORTH, SOUTH] and self.robot.recalibration_counter_y >= RECALIBRATION_PERIOD_Y
@@ -147,7 +147,9 @@ class Robot(CRobLinkAngs):
                         else: 
                             self.robot.exploration_complete = True 
                             self.compute_beacon_path() # Planning
-                    else: continue
+                    else: 
+                        if self.robot.pathfinding_path:
+                            self.follow_path()
 
             # Recalibration 
             self.robot.recalibration_complete = False
@@ -157,6 +159,21 @@ class Robot(CRobLinkAngs):
             # Beacons
             self.ground_reliability.values.clear() # Clear beacon 
             self.beacon_detection_complete = False
+
+
+            # Steering and Moving to not waste cycles
+            if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
+                if self.steering():
+                    continue
+                self.robot.switch_to_moving()
+                if self.robot.recalibration_mode == True: continue 
+            
+            # Throttle Mode
+            if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
+                if self.move_forward(): 
+                    continue
+                self.robot.switch_to_steering()
+                #if self.steering(): continue # After finish moving forward adjust direction --> DO NOT REMOVE THIS COMMENT
 
 
         # Mapping     

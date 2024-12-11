@@ -11,7 +11,7 @@ MOVE_EAST = (2, 0)
 MOVE_SOUTH = (0, -2)
 
 
-SENSOR_THRESHOLD = 1.0 # Wall Detection
+SENSOR_THRESHOLD = 1.1 # Wall Detection
 
 CENTER_SENSOR_SETPOINT = 10 # (1/0.2)
 
