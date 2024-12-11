@@ -103,7 +103,7 @@ class Robot(CRobLinkAngs):
                 if self.move_forward(): 
                     continue
                 self.robot.switch_to_steering()
-                if self.steering(): continue # After finish moving forward adjust direction
+                #if self.steering(): continue # After finish moving forward adjust direction --> DO NOT REMOVE THIS COMMENT
             
             # Recalibration Mode
             if self.robot.recalibration_mode == True:
@@ -130,6 +130,7 @@ class Robot(CRobLinkAngs):
 
             if not self.robot.recalibration_complete and (is_x_recalibration_due or is_y_recalibration_due) and is_wall_in_front:
                 self.robot.switch_to_recalibration()
+                self.recalibration()
                 if closest_direction(self.robot.current_direction) in [WEST, EAST]: self.robot.recalibration_counter_x = 0
                 elif closest_direction(self.robot.current_direction) in [NORTH, SOUTH]: self.robot.recalibration_counter_y = 0
                 continue
@@ -337,7 +338,7 @@ class Robot(CRobLinkAngs):
        
         # Write the final map to a text file
         with open(self.outfile+".path", "w") as file:
-            file.write("0 0 #0\n")
+            file.write("0 0 # 0\n")
             for cell in shortest_total_path:
                 x, y = self.maze.get_cell_index(cell)
                 x = int(x) - self.maze.cols*self.maze.cell_size # Normalize the position
@@ -346,7 +347,7 @@ class Robot(CRobLinkAngs):
                 # Check if the current cell is a target cell
                 for key, value in beacons.items():
                     if value == cell:
-                        file.write(f"{x} {y} #{int(key)}\n")
+                        file.write(f"{x} {y} # {int(key)}\n")
                         break  # Skip the general write since the cell was written as a target
                 else:
                     # Only executed if no target cell match was found
