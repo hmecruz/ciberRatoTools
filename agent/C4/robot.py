@@ -367,7 +367,10 @@ class Robot(CRobLinkAngs):
                         break  # Skip the general write since the cell was written as a target
                 else:
                     # Only executed if no target cell match was found
-                    file.write(f"{x} {y}\n")
+                    if x == 0 and y == 0:
+                        file.write(f"{x} {y} # 0\n")  
+                    else:
+                        file.write(f"{x} {y}\n")  
 
         return True
 
