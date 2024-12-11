@@ -15,6 +15,9 @@ SENSOR_THRESHOLD = 1.1 # Wall Detection
 
 CENTER_SENSOR_SETPOINT = 10 # (1/0.2)
 
+# Reliability Threshold
+RELIABILITY_THRESHOLD_RECALIBRATION = 0.25
+
 # Velocity limits
 MAX_POW = 0.15
 MIN_POW = -0.15

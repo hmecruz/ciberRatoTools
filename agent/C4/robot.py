@@ -57,8 +57,8 @@ class Robot(CRobLinkAngs):
         self.steering_pd_controller = PDController(kp=KPS, kd=KDS, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
         self.recalibration_pd_controller = PDController(kp=KPR, kd=KDR, time_step=TIME_STEP, min_output=MIN_POW, max_output=MAX_POW) # PDController Steering
 
-        self.sensor_reliability  = SensorReliabilty(window_size=5)
-        self.ground_reliability = SensorReliabilty(window_size=3)
+        self.sensor_reliability  = SensorReliabilty(window_size=4, reliability_threshold=RELIABILITY_THRESHOLD_RECALIBRATION)
+        self.ground_reliability = GroundSensorReliabilty(window_size=3)
 
         self.beacon_detection_complete = False 
 
@@ -83,8 +83,8 @@ class Robot(CRobLinkAngs):
                 DATA_COMPASS.add_row([self.measures.compass, self.robot.movement_model.compass_movement_model,self.robot.current_direction])
                 print(f"Beacon: {self.robot.beacons}")
 
-            
-            # Target Cells
+
+            # Beacons
             is_beacon, beacon_id = self.ground_reliability.update(self.measures.ground)
             if not self.beacon_detection_complete and is_beacon and beacon_id > 0:
                 self.robot.beacons[beacon_id] = self.robot.cell
@@ -177,9 +177,8 @@ class Robot(CRobLinkAngs):
 
 
         # Mapping     
-        self.maze.print_map(self.robot.beacons)  
+        self.maze.print_map(self.robot.beacons) 
     
-
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
             if sensor_value <= SENSOR_THRESHOLD: # If no wall
