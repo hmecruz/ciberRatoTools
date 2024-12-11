@@ -18,9 +18,6 @@ DATA_X = MultiColumnData(2,['X (GPS)','X (MM)'])
 DATA_Y = MultiColumnData(2,['Y (GPS)','Y (MM)'])
 DATA_COMPASS = MultiColumnData(3,['θ (Noise)','θ (MM)','θ (KF)'])
 
-
-
-
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     if DEBUG:
