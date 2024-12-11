@@ -94,7 +94,6 @@ class Robot(CRobLinkAngs):
                 if self.steering():
                     continue
                 self.robot.switch_to_moving()
-                if self.robot.recalibration_mode == True: continue 
             
             # Throttle Mode
             if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
@@ -113,7 +112,20 @@ class Robot(CRobLinkAngs):
                 is_reliable, distance = self.sensor_reliability.update(self.robot.ir_sensors["center"])
                 if is_reliable: 
                     self.recalibrate_position(distance)
-                continue
+                    # Steering and Moving to not waste cycles
+                    if self.robot.steering_mode == True and self.robot.direction_setpoint is not None:
+                        if self.steering():
+                            continue
+                        self.robot.switch_to_moving()
+                    
+                    # Throttle Mode
+                    if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
+                        if self.move_forward(): 
+                            continue
+                        self.robot.switch_to_steering()
+                        #if self.steering(): continue # After finish moving forward adjust direction --> DO NOT REMOVE THIS COMMENT
+                
+                continue # If is not reliable 
 
 
             # Robot reach a new position
@@ -163,7 +175,6 @@ class Robot(CRobLinkAngs):
                 if self.steering():
                     continue
                 self.robot.switch_to_moving()
-                if self.robot.recalibration_mode == True: continue 
             
             # Throttle Mode
             if self.robot.moving_mode == True and self.robot.position_setpoint is not None:
