@@ -183,7 +183,6 @@ class Robot(CRobLinkAngs):
                 self.robot.switch_to_steering()
                 #if self.steering(): continue # After finish moving forward adjust direction --> DO NOT REMOVE THIS COMMENT
 
-
         # Mapping     
         self.maze.print_map(self.robot.beacons) 
     
@@ -214,6 +213,27 @@ class Robot(CRobLinkAngs):
 
     def follow_path(self):
         self.robot.cell_setpoint = self.robot.pathfinding_path.pop(0) 
+        
+        # Keep moving forward
+        while self.robot.pathfinding_path:
+            cell_current_middle_position = self.robot.cell.get_middle_position()
+            cell_setpoint_middle_position = self.robot.cell_setpoint.get_middle_position()
+            move_vector = (
+                cell_setpoint_middle_position[0] - cell_current_middle_position[0],
+                cell_setpoint_middle_position[1] - cell_current_middle_position[1],
+            )
+            first_direction = vector_to_direction(move_vector)
+
+            cell_test_middle_position = self.robot.pathfinding_path[0].get_middle_position()
+            move_vector = (
+                cell_test_middle_position[0] - cell_setpoint_middle_position[0], 
+                cell_test_middle_position[1] - cell_setpoint_middle_position[1]
+            )
+            second_direction = vector_to_direction(move_vector)
+            if first_direction is not None and second_direction is not None and first_direction == second_direction:
+                self.robot.cell_setpoint = self.robot.pathfinding_path.pop(0) 
+            else: break
+                
         
         current_cell_middle_position = self.robot.cell.get_middle_position()
         cell_setpoint_middle_position = self.robot.cell_setpoint.get_middle_position()
@@ -275,13 +295,13 @@ class Robot(CRobLinkAngs):
 
                 # Determine the target direction
                 if dx == 0 and dy > 0:
-                    target_heading = 90.0  # NORTH
+                    target_heading = NORTH  # NORTH
                 elif dx == 0 and dy < 0:
-                    target_heading = -90.0  # SOUTH
+                    target_heading = SOUTH  # SOUTH
                 elif dx > 0 and dy == 0:
-                    target_heading = 0.0  # EAST
+                    target_heading = EAST   # EAST
                 elif dx < 0 and dy == 0:
-                    target_heading = 180.0  # WEST
+                    target_heading = WEST   # WEST
                 else:
                     raise ValueError("Invalid cell movement")
 

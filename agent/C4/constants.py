@@ -57,7 +57,22 @@ def vector_to_direction(vector):
         MOVE_EAST: EAST,
         MOVE_SOUTH: SOUTH
     }  
-    return vector_to_direction.get(vector, None)
+    direction = vector_to_direction.get(vector, None)
+    if direction is None: # Keep moving forward 
+        x, y = vector
+        # Determine the target direction
+        if x == 0 and y > 0:
+            direction = NORTH  # NORTH
+        elif x == 0 and y < 0:
+            direction = SOUTH  # SOUTH
+        elif x > 0 and y == 0:
+            direction = EAST  # EAST
+        elif x < 0 and y == 0:
+            direction = WEST  # WEST 
+        else:
+            direction = None
+    return direction
+    
 
 def closest_direction(angle):
     """Returns the closest cardinal direction (NORTH, SOUTH, WEST, EAST) based on the given angle."""
