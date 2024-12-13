@@ -398,7 +398,7 @@ class Robot(CRobLinkAngs):
 
         final_path = []
         final_path.extend(start_path)
-        final_path.extend(shortest_total_path)
+        #final_path.extend(shortest_total_path)
 
         self.robot.pathfinding_path = final_path
 
@@ -424,8 +424,8 @@ class Robot(CRobLinkAngs):
                         file.write(f"{x} {y}\n")  
 
         return True
-
-            
+    
+      
     def steering(self):
         if self.robot.previous_direction == self.robot.current_direction == self.robot.direction_setpoint or \
             (
