@@ -11,6 +11,7 @@ from utils.bfs import bfs, shortest_path_bfs, shortest_unvisited_path_bfs
 from constants import *
 from utils.sensor_reliability import *
 from utils.MultiColumnData import *
+import random
 
 #############################
 
@@ -36,7 +37,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 #############################
 
-DEBUG = False
+DEBUG = True
 
 
 class Robot(CRobLinkAngs):
@@ -68,7 +69,22 @@ class Robot(CRobLinkAngs):
         self.robot.initialize(self)
 
         if DEBUG:
+            global KP,KD,KPSS,KDSS,KPS,KDS,KPR,KDR
+
             self.realGPS = (self.measures.x,self.measures.y)
+            #arr = [KP,KD,KPSS,KDSS,KPS,KDS,KPR,KDR] -> key = round(random() * len(arr))
+            key = round(random.random() * 8)
+            multipliers = [10,1,0.1,0.01,0.001,0.0001,0.00001]
+            mul = multipliers[round(random.random() * len(multipliers))]
+            if key == 0: KP = random.random() * mul
+            elif key == 1: KD = random.random() * mul
+            elif key == 2: KPSS = random.random() * mul
+            elif key == 3: KDSS = random.random() * mul
+            elif key == 4: KPS = random.random() * mul
+            elif key == 5: KDS = random.random() * mul
+            elif key == 6: KPR = random.random() * mul
+            elif key == 7: KDR = random.random() * mul
+                
 
         while True:
             if  not self.robot.read_sensors_update_measures(self): continue # Update sensor readings and position
@@ -185,6 +201,13 @@ class Robot(CRobLinkAngs):
 
         # Mapping     
         self.maze.print_map(self.robot.beacons) 
+
+        if DEBUG:
+            with open("train.csv", "a") as file:
+                file.write(f"{KP},{KD},{KPSS},{KDSS},{KPS},{KDS},{KPR},{KDR},{self.measures.time}\n")
+        self.finish()
+        
+
     
     def get_next_move(self):
         for sensor_name, sensor_value in self.robot.ir_sensors.items():
