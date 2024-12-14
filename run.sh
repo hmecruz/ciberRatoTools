@@ -1,10 +1,10 @@
 #!/bin/bash
 
-challenge="1"
+challenge="4"
 host="localhost"
-robname="theAgent"
+robname="pClient1"
 pos="0"
-outfile="solution"
+outfile="planning"
 
 while getopts "c:h:r:p:f:" op
 do
@@ -30,18 +30,22 @@ do
     esac
 done
 
+
+source venv/bin/activate
+
 shift $(($OPTIND-1))
 
 case $challenge in
-    1)
-        python3 ./C1/main.py -h "$host" -p "$pos" -r "$robname"
-        ;;
-    2)
-        # how to call agent for challenge 2
-        python3 ./C2/main.py -h "$host" -p "$pos" -r "$robname" -f "$outfile"
-        ;;
-    3)
-        # how to call agent for challenge 3
-        python3 ./C3/main.py -h "$host" -p "$pos" -r "$robname" -f "$outfile"
+    4)
+        # Call the Python agent with the parsed parameters
+        cd agent/C4
+        python3 main.py \
+            --host "$host" \
+            --pos "$pos" \
+            --robname "$robname" \
+            --outfile "$outfile"
+        cp $outfile.path ../../
+        cp $outfile.map  ../../
         ;;
 esac
+

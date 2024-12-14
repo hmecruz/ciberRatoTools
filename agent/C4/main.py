@@ -1,10 +1,10 @@
 import sys
 from robot import Robot
-from map import Map
+from utils.map import Map
 
 rob_name = "pClient1"
 host = "localhost"
-pos = 1
+pos = 0
 mapc = None
 outfile = "planning"
 
@@ -26,7 +26,7 @@ for i in range(1, len(sys.argv),2):
         quit()
 
 if __name__ == '__main__':
-    rob=Robot(rob_name,pos,[0.0,90.0,-90.0,180.0],host,outfile+".path")
+    rob=Robot(rob_name,pos,[0.0,90.0,-90.0,180.0],host,outfile)
     if mapc != None:
         rob.setMap(mapc.labMap)
         rob.printMap()
